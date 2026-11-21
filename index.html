@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#7a1f3d">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>나의 와인 셀러</title>
+<style>
+@font-face{font-family:'Pretendard Variable';font-weight:45 920;font-style:normal;font-display:swap;src:url('PretendardVariable.woff2') format('woff2-variations')}
+/* Layout idea: a cellar ledger. Each lot is a row with a style-coloured capsule stripe on the left,
+   the vintage set large in the display face, and the bottle count on the right. Sheets slide up for all editing. */
+:root{
+  --bg:#f1eff3; --surface:#ffffff; --ink:#1f1a24; --muted:#6c6374; --line:#e1dce6; --accent:#7a1f3d; --on-accent:#fff;
+  --good:#2f7d55; --warn:#a8691a; --bad:#a43a3a;
+  --s-red:#8e2440; --s-white:#c8a640; --s-spark:#6f9fb5; --s-rose:#d98a94; --s-dessert:#b4701f; --s-fort:#5b3a2a;
+  --display:'Pretendard Variable',Pretendard,system-ui,-apple-system,'Malgun Gothic',sans-serif;
+  --body:'Pretendard Variable',Pretendard,system-ui,-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#17131a; --surface:#221c27; --ink:#efe9f2; --muted:#a398ac; --line:#372f3e; --accent:#e27a97; --on-accent:#1b0d13;
+    --good:#6cc596; --warn:#e0a653; --bad:#e58080;
+    --s-red:#c0456a; --s-white:#d9bd5f; --s-spark:#8dbcd0; --s-rose:#e7a3ac; --s-dessert:#d08e3c; --s-fort:#9a6f58;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#17131a; --surface:#221c27; --ink:#efe9f2; --muted:#a398ac; --line:#372f3e; --accent:#e27a97; --on-accent:#1b0d13;
+  --good:#6cc596; --warn:#e0a653; --bad:#e58080;
+  --s-red:#c0456a; --s-white:#d9bd5f; --s-spark:#8dbcd0; --s-rose:#e7a3ac; --s-dessert:#d08e3c; --s-fort:#9a6f58;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5;display:flex;flex-direction:column;-webkit-text-size-adjust:100%}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+[hidden]{display:none!important}
+
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:max(14px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) 10px max(16px,env(safe-area-inset-left))}
+h1{font-family:var(--display);font-weight:700;font-size:22px;letter-spacing:-.02em;margin:0}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:10px 14px;font-weight:500;min-height:44px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:600}
+.btn.danger{color:var(--bad)}
+.btn:disabled{opacity:.5;cursor:default}
+.btn.small{min-height:36px;padding:6px 10px;font-size:13px}
+
+#banner{cursor:pointer;margin:0 16px 8px;padding:8px 12px;border-radius:8px;background:color-mix(in srgb,var(--warn) 16%,var(--surface));font-size:13px}
+main{flex:1;overflow-y:auto;padding:0 16px 20px;min-height:0}
+.wrap{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+
+.tools{display:flex;flex-direction:column;gap:8px}
+.tools input[type=search],.field input,.field select,.field textarea{width:100%;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:10px 12px;font-size:16px;min-height:44px}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-size:13px;min-height:36px;display:flex;align-items:center;gap:6px}
+.chip[aria-pressed=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.dot{width:8px;height:8px;border-radius:50%;flex:none}
+.row2{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.row2 select{flex:1 1 30%;min-width:104px;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:8px 10px;font-size:14px;min-height:40px}
+.check{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)}
+.count{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+
+.list{display:flex;flex-direction:column;gap:8px}
+.wine{display:flex;align-items:stretch;gap:12px;width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:0;overflow:hidden}
+.stripe{width:6px;flex:none}
+.w-vint{font-family:var(--display);font-weight:700;font-size:22px;line-height:1;letter-spacing:-.02em;font-variant-numeric:tabular-nums;flex:none;width:52px;padding:14px 0 0;color:var(--ink)}
+.w-vint.nv{font-size:16px;color:var(--muted)}
+.w-main{flex:1;min-width:0;padding:12px 0;display:flex;flex-direction:column;gap:3px}
+.w-name{font-weight:600;overflow-wrap:anywhere}
+.w-sub{font-size:13px;color:var(--muted);overflow-wrap:anywhere}
+.w-meta{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:12px;margin-top:2px}
+.w-qty{flex:none;padding:12px 14px 12px 0;text-align:right;font-family:var(--display);font-weight:700;font-size:20px;font-variant-numeric:tabular-nums}
+.w-qty small{font-family:var(--body);font-weight:400;font-size:11px;color:var(--muted);display:block}
+.wine.empty{opacity:.55}
+.pill{border-radius:999px;padding:2px 8px;font-size:11px;font-weight:600;border:1px solid currentColor}
+.pill.now{color:var(--good)} .pill.wait{color:var(--warn)} .pill.late{color:var(--bad)}
+.price{color:var(--muted);font-variant-numeric:tabular-nums}
+
+.blank{background:var(--surface);border:1px dashed var(--line);border-radius:12px;padding:28px 18px;text-align:center;color:var(--muted)}
+.blank strong{display:block;color:var(--ink);font-size:16px;margin-bottom:4px}
+
+.log{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;text-align:left;width:100%;display:flex;flex-direction:column;gap:3px}
+.log-top{display:flex;justify-content:space-between;gap:10px;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.log-note{font-size:13px;color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.score{font-family:var(--display);font-weight:700;color:var(--accent)}
+
+.tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.tile b{display:block;font-family:var(--display);font-size:22px;letter-spacing:-.02em;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.tile span{font-size:12px;color:var(--muted)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px}
+.panel h2{font-size:14px;margin:0 0 10px;font-weight:600}
+.bar{display:grid;grid-template-columns:84px 1fr 34px;gap:8px;align-items:center;font-size:13px;margin:6px 0}
+.bar i{display:block;height:8px;border-radius:4px;background:var(--accent);min-width:2px}
+.bar span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar span:last-child{text-align:right;font-variant-numeric:tabular-nums;color:var(--muted)}
+
+nav{display:flex;border-top:1px solid var(--line);background:var(--surface);padding-bottom:env(safe-area-inset-bottom)}
+nav a{flex:1;text-align:center;padding:12px 4px 14px;text-decoration:none;color:var(--muted);font-size:13px;font-weight:500;border-top:2px solid transparent;margin-top:-1px}
+nav a[aria-current=page]{color:var(--accent);border-top-color:var(--accent);font-weight:600}
+
+#sheet{position:fixed;inset:0;background:rgba(10,6,12,.5);display:flex;align-items:flex-end;justify-content:center;z-index:10}
+.sheet{background:var(--bg);width:100%;max-width:720px;max-height:92%;border-radius:18px 18px 0 0;display:flex;flex-direction:column;animation:up .2s ease-out}
+@keyframes up{from{transform:translateY(24px)}to{transform:none}}
+@media (prefers-reduced-motion:reduce){.sheet{animation:none}}
+.sheet-head{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px 16px 8px}
+.sheet-head h2{margin:0;font-size:17px;font-weight:600;overflow-wrap:anywhere}
+.x{border:0;background:none;font-size:22px;line-height:1;min-width:44px;min-height:44px;color:var(--muted)}
+.sheet-body{overflow-y:auto;padding:4px 16px calc(20px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:12px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field.full{grid-column:1/-1}
+.field label{font-size:12px;color:var(--muted);font-weight:500}
+.field textarea{min-height:96px;resize:vertical}
+.acts{display:flex;gap:8px;flex-wrap:wrap}
+.acts .btn{flex:1;min-width:120px}
+.scan{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.hint{font-size:12px;color:var(--muted);margin:0}
+.kv{display:grid;grid-template-columns:84px 1fr;gap:6px 10px;font-size:14px;margin:0}
+.kv dt{color:var(--muted);font-size:13px}
+.kv dd{margin:0;overflow-wrap:anywhere}
+.about{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:10px;padding:12px;font-size:14px;white-space:pre-wrap}
+.about small{display:block;color:var(--muted);font-size:11px;margin-bottom:4px;font-weight:600}
+.hero{display:flex;gap:12px;align-items:baseline}
+.hero .v{font-family:var(--display);font-weight:700;font-size:34px;letter-spacing:-.03em;line-height:1}
+a.ext{color:var(--accent);font-size:14px}
+#toast{position:fixed;left:50%;bottom:76px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 14px;border-radius:10px;font-size:13px;z-index:20;max-width:calc(100% - 32px)}
+textarea.csv{width:100%;min-height:180px;font-family:ui-monospace,monospace;font-size:12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:10px}
+</style>
+</head>
+<body>
+<header>
+  <h1>나의 와인 셀러</h1>
+  <div style="display:flex;gap:8px"><button class="btn" id="set-btn" type="button">설정</button><button class="btn primary" id="add-btn" type="button">＋ 추가</button></div>
+</header>
+<div id="banner" hidden>라벨 인식과 와인 해설을 쓰려면 설정에서 API 키를 넣어 주세요. 직접 입력과 기록은 키 없이도 됩니다.</div>
+
+<main>
+  <div class="wrap" id="v-cellar">
+    <div class="tools">
+      <input type="search" id="q" placeholder="와인명, 생산자, 산지, 품종 검색" autocomplete="off">
+      <div class="chips" id="style-chips"></div>
+      <div class="row2">
+        <select id="country" aria-label="국가"></select>
+        <select id="loc" aria-label="보관 위치"></select>
+        <select id="sort" aria-label="정렬">
+          <option value="recent">최근 등록순</option>
+          <option value="vintage">빈티지 오래된 순</option>
+          <option value="price">구매가 높은 순</option>
+          <option value="name">이름순</option>
+          <option value="window">시음 적기 빠른 순</option>
+        </select>
+        <label class="check"><input type="checkbox" id="show-empty"> 다 마신 와인 포함</label>
+      </div>
+      <div class="count" id="count"></div>
+    </div>
+    <div class="list" id="list"><div class="blank" id="loadnote">셀러를 불러오는 중입니다…</div></div>
+  </div>
+  <div class="wrap" id="v-history" hidden><div class="list" id="hist"></div></div>
+  <div class="wrap" id="v-stats" hidden><div id="stats" class="wrap"></div></div>
+</main>
+
+<nav>
+  <a href="#cellar" data-tab="cellar">셀러</a>
+  <a href="#history" data-tab="history">마신 기록</a>
+  <a href="#stats" data-tab="stats">통계</a>
+</nav>
+
+<div id="sheet" hidden></div>
+<div id="toast" hidden role="status"></div>
+
+<script>
+const $=(s,r=document)=>r.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const STYLES=[['레드','red'],['화이트','white'],['스파클링','spark'],['로제','rose'],['디저트','dessert'],['주정강화','fort']];
+const styleVar=s=>{const f=STYLES.find(x=>x[0]===s);return f?`var(--s-${f[1]})`:'var(--line)'};
+const won=n=>(n||n===0)&&isFinite(n)?Math.round(n).toLocaleString('ko-KR')+'원':'';
+const num=v=>{const n=parseFloat(String(v??'').replace(/[^0-9.\-]/g,''));return isFinite(n)?n:null};
+const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+const YEAR=new Date().getFullYear();
+const title=w=>[w.producer,w.name].filter(Boolean).join(' ')||'이름 없는 와인';
+
+let loaded=true;
+let wines=[],drinks=[];
+const F={q:'',style:'',country:'',loc:'',sort:'recent',empty:false};
+const LOCS=['삼성셀러','매직쉐프셀러','거실옷장','삼각창고','외부창고'];
+const locList=()=>[...new Set([...LOCS,...wines.map(w=>w.location).filter(Boolean)])];
+const locText=w=>[w.location,w.slot].filter(Boolean).join(' ');
+
+/* ---------- storage: this phone only ---------- */
+const KEY='cellar.v1',CKEY='cellar.cfg',DEF={key:'',model:'claude-sonnet-5-5',web:true};
+function getCfg(){try{return Object.assign({},DEF,JSON.parse(localStorage.getItem(CKEY)||'{}'))}catch(_){return{...DEF}}}
+function setCfg(c){try{localStorage.setItem(CKEY,JSON.stringify(c))}catch(_){}}
+function persist(){try{localStorage.setItem(KEY,JSON.stringify({wines,drinks}));return true}catch(_){toast('폰 저장 공간에 쓰지 못했습니다. 설정에서 백업을 받아 두세요.');return false}}
+try{const d=JSON.parse(localStorage.getItem(KEY)||'{}');wines=Array.isArray(d.wines)?d.wines:[];drinks=Array.isArray(d.drinks)?d.drinks:[]}catch(_){}
+if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{});
+function newId(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
+async function put(col,id,data){const arr=col==='wines'?wines:drinks;const row={...data,id};const i=arr.findIndex(x=>x.id===id);if(i>=0)arr[i]=row;else arr.push(row);persist();render()}
+async function del(col,id){if(col==='wines')wines=wines.filter(x=>x.id!==id);else drinks=drinks.filter(x=>x.id!==id);persist();render()}
+function download(name,text,type){const u=URL.createObjectURL(new Blob([text],{type}));const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1000)}
+
+/* ---------- Claude API (key stays on this phone) ---------- */
+async function callClaude(content,useWeb){
+  const cfg=getCfg();if(!cfg.key)throw{code:'no_key'};
+  const msgs=[{role:'user',content}];let text='';const cited=[],found=[];
+  for(let round=0;round<3;round++){
+    const body={model:cfg.model||DEF.model,max_tokens:3000,messages:msgs};
+    if(useWeb)body.tools=[{type:'web_search_20250305',name:'web_search',max_uses:4}];
+    let r,j;
+    try{
+      r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'content-type':'application/json','x-api-key':cfg.key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify(body)});
+      j=await r.json();
+    }catch(_){throw{code:'network'}}
+    if(!r.ok)throw{code:r.status===401?'bad_key':r.status===429?'rate_limited':r.status===404?'bad_model':'api',message:j&&j.error&&j.error.message};
+    for(const b of j.content||[]){
+      if(b.type==='text'){text+=b.text;for(const c of b.citations||[])if(c.url&&!cited.some(x=>x.url===c.url))cited.push({title:c.title||c.url,url:c.url})}
+      else if(b.type==='web_search_tool_result'&&Array.isArray(b.content))for(const x of b.content)if(x.url&&!found.some(y=>y.url===x.url))found.push({title:x.title||x.url,url:x.url});
+    }
+    if(j.stop_reason!=='pause_turn')break;
+    msgs.push({role:'assistant',content:j.content});
+  }
+  return{text,sources:(cited.length?cited:found).slice(0,5)};
+}
+function parseJSON(t){
+  const m=t.match(/```(?:json)?\s*([\s\S]*?)```/);const src=m?m[1]:t;
+  const a=src.indexOf('{'),b=src.lastIndexOf('}');
+  if(a<0||b<=a)throw{code:'invalid_json'};
+  try{return JSON.parse(src.slice(a,b+1))}catch(_){throw{code:'invalid_json'}}
+}
+function imgB64(file){return new Promise((res,rej)=>{
+  const u=URL.createObjectURL(file),im=new Image();
+  im.onload=()=>{const k=Math.min(1,1568/Math.max(im.width,im.height));const c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);res(c.toDataURL('image/jpeg',.85).split(',')[1])};
+  im.onerror=()=>{URL.revokeObjectURL(u);rej({code:'image_rejected'})};im.src=u})}
+
+/* ---------- helpers ---------- */
+let toastT;
+function toast(m){const t=$('#toast');t.textContent=m;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,3500)}
+function winState(w){
+  if(w.drinkTo&&YEAR>w.drinkTo)return['적기 지남','late'];
+  if(w.drinkFrom&&YEAR<w.drinkFrom)return['숙성 중','wait'];
+  if(w.drinkFrom||w.drinkTo)return['마실 때','now'];
+  return null;
+}
+function aiMsg(e){
+  switch(e&&e.code){
+    case'no_key':return'설정에서 API 키를 먼저 넣어 주세요.';
+    case'bad_key':return'API 키가 올바르지 않습니다. 설정에서 다시 확인해 주세요.';
+    case'bad_model':return'설정의 모델 이름을 확인해 주세요.';
+    case'rate_limited':return'요청이 많거나 사용 한도에 닿았습니다. 잠시 뒤에 다시 시도해 주세요.';
+    case'image_rejected':return'사진을 읽을 수 없습니다. 다른 사진으로 시도해 주세요.';
+    case'network':return'인터넷 연결을 확인해 주세요.';
+    case'invalid_json':return'결과를 받지 못했습니다. 다시 시도해 주세요.';
+    default:return'AI 요청에 실패했습니다.'+(e&&e.message?' ('+String(e.message).slice(0,80)+')':'');
+  }
+}
+function searcherUrl(w){
+  const q=encodeURIComponent(title(w)).replace(/%20/g,'+');
+  return'https://www.wine-searcher.com/find/'+q+(w.vintage?'/'+w.vintage:'');
+}
+
+/* ---------- render ---------- */
+function route(){const h=(location.hash||'#cellar').slice(1);return['cellar','history','stats'].includes(h)?h:'cellar'}
+function render(){
+  const r=route();
+  for(const v of['cellar','history','stats'])$('#v-'+v).hidden=v!==r;
+  $('#banner').hidden=!!getCfg().key;
+  document.querySelectorAll('nav a').forEach(a=>{if(a.dataset.tab===r)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')});
+  if(r==='cellar')renderCellar();else if(r==='history')renderHistory();else renderStats();
+}
+function renderChips(){
+  $('#style-chips').innerHTML=`<button type="button" class="chip" data-style="" aria-pressed="${F.style===''}">전체</button>`+
+    STYLES.map(([s])=>`<button type="button" class="chip" data-style="${s}" aria-pressed="${F.style===s}"><span class="dot" style="background:${styleVar(s)}"></span>${s}</button>`).join('');
+}
+function renderCellar(){
+  renderChips();
+  const cs=[...new Set(wines.map(w=>w.country).filter(Boolean))].sort();
+  if(F.country&&!cs.includes(F.country))F.country='';
+  $('#country').innerHTML='<option value="">국가 전체</option>'+cs.map(c=>`<option${c===F.country?' selected':''}>${esc(c)}</option>`).join('');
+  const ls=locList();if(F.loc&&!ls.includes(F.loc))F.loc='';
+  $('#loc').innerHTML='<option value="">위치 전체</option>'+ls.map(c=>`<option${c===F.loc?' selected':''}>${esc(c)}</option>`).join('');
+  const list=$('#list');
+  if(!loaded){return}
+  const q=F.q.trim().toLowerCase();
+  let rows=wines.filter(w=>{
+    if(!F.empty&&!((w.qty||0)>0))return false;
+    if(F.style&&w.style!==F.style)return false;
+    if(F.country&&w.country!==F.country)return false;
+    if(F.loc&&w.location!==F.loc)return false;
+    if(q){const hay=[w.name,w.producer,w.vintage,w.country,w.region,w.appellation,w.grape,w.classification,w.tags,w.store,w.location,w.slot].join(' ').toLowerCase();if(!hay.includes(q))return false}
+    return true;
+  });
+  const big=1e15;
+  const sorters={
+    recent:(a,b)=>(b.createdAt||0)-(a.createdAt||0),
+    vintage:(a,b)=>(a.vintage||big)-(b.vintage||big),
+    price:(a,b)=>(b.price||0)-(a.price||0),
+    name:(a,b)=>title(a).localeCompare(title(b)),
+    window:(a,b)=>(a.drinkFrom||a.drinkTo||big)-(b.drinkFrom||b.drinkTo||big)
+  };
+  rows.sort(sorters[F.sort]||sorters.recent);
+  const bottles=rows.reduce((s,w)=>s+Math.max(0,w.qty||0),0);
+  $('#count').textContent=wines.length?`${bottles}병 · ${rows.length}종`:'';
+  if(!wines.length){list.innerHTML='<div class="blank"><strong>아직 등록한 와인이 없습니다</strong>위의 ＋ 와인 추가를 눌러 라벨을 촬영하거나 직접 입력해 보세요.</div>';return}
+  if(!rows.length){list.innerHTML='<div class="blank">조건에 맞는 와인이 없습니다.</div>';return}
+  list.innerHTML=rows.map(w=>{
+    const st=winState(w);
+    const sub=[w.region||w.country,w.appellation,w.grape,w.classification].filter(Boolean).join(' · ');
+    const out=!((w.qty||0)>0);
+    return`<button type="button" class="wine${out?' empty':''}" data-wine="${esc(w.id)}">
+      <span class="stripe" style="background:${styleVar(w.style)}"></span>
+      <span class="w-vint${w.vintage?'':' nv'}">${w.vintage?esc(w.vintage):'NV'}</span>
+      <span class="w-main"><span class="w-name">${esc(title(w))}</span>
+        ${sub?`<span class="w-sub">${esc(sub)}</span>`:''}
+        <span class="w-meta">${st&&!out?`<span class="pill ${st[1]}">${st[0]}</span>`:''}${w.price?`<span class="price">${won(w.price)}</span>`:''}${w.location?`<span class="price">${esc(locText(w))}</span>`:''}</span>
+      </span>
+      <span class="w-qty">${Math.max(0,w.qty||0)}<small>병</small></span>
+    </button>`}).join('');
+}
+function renderHistory(){
+  const el=$('#hist');
+  if(!loaded){el.innerHTML='<div class="blank">불러오는 중입니다…</div>';return}
+  if(!drinks.length){el.innerHTML='<div class="blank"><strong>마신 기록이 없습니다</strong>셀러에서 와인을 고르고 마시기를 누르면 날짜, 자리, 시음기가 여기에 쌓입니다.</div>';return}
+  const rows=[...drinks].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))||(b.createdAt||0)-(a.createdAt||0));
+  el.innerHTML=rows.map(d=>`<button type="button" class="log" data-drink="${esc(d.id)}">
+    <span class="log-top"><span>${esc(d.date||'')}${d.occasion?' · '+esc(d.occasion):''}</span>${d.score?`<span class="score">${esc(d.score)}점</span>`:''}</span>
+    <span class="w-name">${d.vintage?esc(d.vintage)+' ':''}${esc(d.title||'')}</span>
+    ${d.note?`<span class="log-note">${esc(d.note)}</span>`:''}
+  </button>`).join('');
+}
+function tally(key){const m={};for(const w of wines){const q=Math.max(0,w.qty||0);if(!q)continue;const k=w[key]||'미분류';m[k]=(m[k]||0)+q}return Object.entries(m).sort((a,b)=>b[1]-a[1]).slice(0,7)}
+function bars(h,rows){
+  if(!rows.length)return'';const max=rows[0][1];
+  return`<div class="panel"><h2>${h}</h2>${rows.map(([k,v])=>`<div class="bar"><span>${esc(k)}</span><i style="width:${Math.max(3,v/max*100)}%"></i><span>${v}</span></div>`).join('')}</div>`;
+}
+function renderStats(){
+  const el=$('#stats');
+  if(!loaded){el.innerHTML='<div class="blank">불러오는 중입니다…</div>';return}
+  const stock=wines.filter(w=>(w.qty||0)>0);
+  const bottles=stock.reduce((s,w)=>s+w.qty,0);
+  const cost=stock.reduce((s,w)=>s+(w.price||0)*w.qty,0);
+  const withM=stock.filter(w=>w.marketKRW);
+  const mval=withM.reduce((s,w)=>s+w.marketKRW*w.qty,0);
+  const ready=stock.filter(w=>{const s=winState(w);return s&&s[1]!=='wait'});
+  el.innerHTML=`<div class="tiles">
+    <div class="tile"><b>${bottles}병</b><span>보유 (${stock.length}종)</span></div>
+    <div class="tile"><b>${drinks.length}병</b><span>마신 기록</span></div>
+    <div class="tile"><b>${won(cost)||'0원'}</b><span>보유분 구매 총액</span></div>
+    <div class="tile"><b>${withM.length?won(mval):'–'}</b><span>추정 시세 합계 (${withM.length}종 기준)</span></div>
+  </div>
+  ${ready.length?`<div class="panel"><h2>지금 마시기 좋은 와인</h2><div class="list">${ready.slice(0,8).map(w=>{const s=winState(w);return`<button type="button" class="chip" style="width:100%;border-radius:10px;justify-content:space-between" data-wine="${esc(w.id)}"><span>${w.vintage?esc(w.vintage)+' ':''}${esc(title(w))}</span><span class="pill ${s[1]}">${s[0]}</span></button>`}).join('')}</div></div>`:''}
+  ${bars('보관 위치별 보유 병수',tally('location'))}${bars('스타일별 보유 병수',tally('style'))}${bars('국가별 보유 병수',tally('country'))}${bars('산지별 보유 병수',tally('region'))}
+  <button type="button" class="btn" id="csv-btn">목록을 CSV로 내보내기</button>`;
+}
+
+/* ---------- sheets ---------- */
+function sheet(head,body){
+  const s=$('#sheet');
+  s.innerHTML=`<div class="sheet" role="dialog" aria-modal="true"><div class="sheet-head"><h2>${head}</h2><button type="button" class="x" data-act="close" aria-label="닫기">×</button></div><div class="sheet-body">${body}</div></div>`;
+  s.hidden=false;
+}
+function closeSheet(){$('#sheet').hidden=true;$('#sheet').innerHTML=''}
+
+const fld=(id,label,val,attrs='',full=false)=>`<div class="field${full?' full':''}"><label for="${id}">${label}</label><input id="${id}" value="${esc(val??'')}" ${attrs}></div>`;
+function openForm(id){
+  const w=id?wines.find(x=>x.id===id)||{}:{qty:1,size:750,style:'레드',purchaseDate:today()};
+  sheet(id?'와인 수정':'와인 추가',`
+    ${id?'':`<div class="scan">
+      <div class="acts">
+        <button type="button" class="btn primary" data-act="shoot">라벨 촬영</button>
+        <button type="button" class="btn" data-act="pick">사진에서 선택</button>
+      </div>
+      <input type="file" id="f-cam" accept="image/*" capture="environment" hidden>
+      <input type="file" id="f-file" accept="image/*" hidden>
+      <p class="hint" id="scan-status">라벨 사진을 올리면 AI가 생산자, 와인명, 빈티지, 산지를 읽어 아래 칸을 채웁니다. 직접 입력해도 됩니다.</p>
+    </div>`}
+    <form id="wine-form" class="grid" data-id="${esc(id||'')}">
+      ${fld('f-producer','생산자 (도멘)',w.producer,'',true)}
+      ${fld('f-name','와인명',w.name,'',true)}
+      ${fld('f-vintage','빈티지',w.vintage,'inputmode="numeric" placeholder="NV는 비움"')}
+      <div class="field"><label for="f-style">스타일</label><select id="f-style">${STYLES.map(([s])=>`<option${w.style===s?' selected':''}>${s}</option>`).join('')}</select></div>
+      ${fld('f-country','국가',w.country,'list="dl-country"')}
+      ${fld('f-region','지역',w.region,'placeholder="예: 부르고뉴"')}
+      ${fld('f-appellation','마을 / 밭 (아펠라시옹)',w.appellation,'',true)}
+      ${fld('f-class','등급',w.classification,'list="dl-class"')}
+      ${fld('f-grape','품종',w.grape)}
+      ${fld('f-size','용량 (ml)',w.size,'inputmode="numeric"')}
+      ${fld('f-qty','수량 (병)',w.qty,'inputmode="numeric"')}
+      ${fld('f-price','병당 구매가 (원)',w.price,'inputmode="numeric"')}
+      ${fld('f-pdate','구매일',w.purchaseDate,'type="date"')}
+      ${fld('f-store','구매처 / 사이트',w.store,'',true)}
+      <div class="field"><label for="f-location">보관 위치</label><select id="f-location"><option value="">미지정</option>${locList().map(l=>`<option${w.location===l?' selected':''}>${esc(l)}</option>`).join('')}<option value="__new">새 위치 추가…</option></select></div>
+      ${fld('f-slot','칸 / 단',w.slot,'placeholder="예: 2단 왼쪽"')}
+      <div class="field full" id="newloc-wrap" hidden><label for="f-newloc">새 보관 위치 이름</label><input id="f-newloc" autocomplete="off"></div>
+      ${fld('f-tags','태그',w.tags,'placeholder="예: 기념일용, 장기숙성"',true)}
+      ${fld('f-from','시음 적기 시작 (연도)',w.drinkFrom,'inputmode="numeric"')}
+      ${fld('f-to','시음 적기 끝 (연도)',w.drinkTo,'inputmode="numeric"')}
+      <div class="field full"><label for="f-memo">메모</label><textarea id="f-memo">${esc(w.memo||'')}</textarea></div>
+      <datalist id="dl-country">${['프랑스','이탈리아','스페인','미국','독일','포르투갈','호주','뉴질랜드','칠레','아르헨티나','남아공','오스트리아'].map(c=>`<option value="${c}">`).join('')}</datalist>
+      <datalist id="dl-class">${['Grand Cru','1er Cru','Village','Régionale','DOCG','DOC','Grand Cru Classé','Reserva','Gran Reserva'].map(c=>`<option value="${c}">`).join('')}</datalist>
+      <div class="field full"><button type="submit" class="btn primary" id="save-wine">${id?'저장':'셀러에 등록'}</button>
+      ${id?'':'<p class="hint">등록하면 AI가 와인 해설과 추정 시세를 자동으로 붙입니다.</p>'}</div>
+    </form>`);
+}
+const SCAN_PROMPT=`사진은 와인 병 라벨이다. 라벨을 읽고 아래 키를 가진 JSON 객체 하나만 답하라. 다른 글은 쓰지 마라.
+{"producer": 생산자명(원어), "name": 퀴베/와인명(원어, 생산자명과 빈티지 제외), "vintage": 연도 숫자 또는 null(NV), "style": "레드"|"화이트"|"스파클링"|"로제"|"디저트"|"주정강화", "country": 국가(한국어), "region": 지역(한국어, 예: 부르고뉴), "appellation": 마을/밭/아펠라시옹(원어), "classification": 등급(예: Grand Cru, 1er Cru, Village, DOCG) 또는 "", "grape": 주요 품종(한국어, 쉼표 구분), "size": 용량 ml 숫자(안 보이면 750)}
+라벨에서 읽을 수 없는 값은 "" 또는 null로 둔다. 국가, 지역, 품종, 스타일은 아펠라시옹과 생산자로부터 추론해도 된다.`;
+async function scan(file){
+  if(!file)return;
+  const st=$('#scan-status');if(!st)return;
+  if(!getCfg().key){st.textContent='설정에서 API 키를 넣으면 라벨 인식을 쓸 수 있습니다. 지금은 아래 칸에 직접 입력해 주세요.';return}
+  st.textContent='라벨을 읽는 중입니다. 10~30초쯤 걸립니다…';
+  try{
+    const data=await imgB64(file);
+    const out=await callClaude([{type:'image',source:{type:'base64',media_type:'image/jpeg',data}},{type:'text',text:SCAN_PROMPT}],false);
+    const r=parseJSON(out.text);
+    if(!$('#wine-form'))return;
+    const set=(id,v)=>{const el=$('#'+id);if(el&&v!==null&&v!==undefined&&v!=='')el.value=v};
+    set('f-producer',r.producer);set('f-name',r.name);set('f-vintage',r.vintage);
+    if(STYLES.some(x=>x[0]===r.style))set('f-style',r.style);
+    set('f-country',r.country);set('f-region',r.region);set('f-appellation',r.appellation);set('f-class',r.classification);set('f-grape',r.grape);set('f-size',r.size);
+    st.textContent='인식한 내용을 채웠습니다. 틀린 곳을 고친 뒤 가격과 구매처를 입력해 주세요.';
+  }catch(e){if($('#scan-status'))$('#scan-status').textContent=aiMsg(e)+' 직접 입력해도 됩니다.'}
+}
+async function saveWine(form){
+  const id=form.dataset.id;const v=k=>$('#'+k).value.trim();
+  if(!v('f-producer')&&!v('f-name')){toast('생산자나 와인명 중 하나는 입력해 주세요.');$('#f-producer').focus();return}
+  const old=id?wines.find(x=>x.id===id)||{}:{};
+  const w={...old,producer:v('f-producer'),name:v('f-name'),vintage:num(v('f-vintage')),style:v('f-style'),country:v('f-country'),region:v('f-region'),
+    appellation:v('f-appellation'),classification:v('f-class'),grape:v('f-grape'),size:num(v('f-size'))||750,qty:Math.max(0,Math.round(num(v('f-qty'))??1)),
+    price:num(v('f-price')),purchaseDate:v('f-pdate'),store:v('f-store'),location:v('f-location')==='__new'?v('f-newloc'):v('f-location'),slot:v('f-slot'),tags:v('f-tags'),
+    drinkFrom:num(v('f-from')),drinkTo:num(v('f-to')),memo:$('#f-memo').value.trim(),createdAt:old.createdAt||Date.now()};
+  const btn=$('#save-wine');btn.disabled=true;
+  const wid=id||newId();
+  try{await put('wines',wid,w)}catch(e){btn.disabled=false;toast(e&&e.code==='quota_exceeded'?'저장 공간이 가득 찼습니다.':'저장하지 못했습니다. 다시 시도해 주세요.');return}
+  if(id){openWine(wid)}
+  else{closeSheet();toast('셀러에 등록했습니다.');if(getCfg().key)enrich(wid,w,true)}
+}
+
+/* 와인 해설 + 시세: 웹 검색을 켜면 실제 매체를 찾아 요약 */
+async function enrich(id,base,quiet){
+  const cfg=getCfg();
+  if(!cfg.key){toast(aiMsg({code:'no_key'}));return}
+  const w=base||wines.find(x=>x.id===id);if(!w)return;
+  const info={producer:w.producer,name:w.name,vintage:w.vintage||'NV',style:w.style,country:w.country,region:w.region,appellation:w.appellation,classification:w.classification,grape:w.grape,size_ml:w.size};
+  const how=cfg.web
+    ?'웹 검색으로 Wine-Searcher, Vivino, Decanter, Wine Spectator, 생산자 공식 사이트 같은 와인 전문 자료에서 이 와인을 찾아 확인하라. 찾은 내용만 근거로 삼고, 문장을 베끼지 말고 직접 요약하라. 찾지 못한 값은 null로 둔다.'
+    :'웹을 볼 수 없으니 알고 있는 지식만으로 답하고, 모르는 와인이면 솔직하게 null로 둔다.';
+  const prompt=`와인 한 병에 대한 해설과 시세를 요청한다. ${how}
+와인: ${JSON.stringify(info)}
+마지막에 아래 키를 가진 JSON 객체 하나만 답하라. JSON 앞뒤에 다른 설명을 붙이지 마라.
+{"about": 한국어 3~5문장. 생산자와 밭/산지의 성격, 이 와인의 스타일(바디, 산도, 타닌, 대표 향과 맛), 해당 빈티지의 평가와 평론가 점수(확인된 경우만),
+ "pairing": 어울리는 음식 한국어 한 줄,
+ "drinkFrom": 시음 적기 시작 연도 숫자 또는 null, "drinkTo": 시음 적기 끝 연도 숫자 또는 null,
+ "avgUSD": 이 용량 1병의 해외 평균 소매가(세전, USD 숫자) 또는 null,
+ "avgKRW": 한국 소매 기준 예상 가격(원 숫자) 또는 null,
+ "confidence": "높음"|"보통"|"낮음",
+ "note": 가격의 근거나 주의점 한국어 한 문장}`;
+  if(!quiet)toast(cfg.web?'웹에서 와인 정보를 찾는 중입니다. 1분쯤 걸릴 수 있습니다…':'AI 해설과 시세를 받는 중입니다…');
+  try{
+    const out=await callClaude(prompt,cfg.web);
+    const r=parseJSON(out.text);
+    const cur=wines.find(x=>x.id===id);if(!cur)return;
+    const upd={...cur,about:r.about||cur.about||'',pairing:r.pairing||cur.pairing||'',marketKRW:num(r.avgKRW),marketUSD:num(r.avgUSD),marketConf:r.confidence||'',marketNote:r.note||'',marketAt:today(),aboutWeb:!!cfg.web,sources:cfg.web?out.sources:[]};
+    if(!cur.drinkFrom&&num(r.drinkFrom))upd.drinkFrom=num(r.drinkFrom);
+    if(!cur.drinkTo&&num(r.drinkTo))upd.drinkTo=num(r.drinkTo);
+    await put('wines',id,upd);
+    toast('와인 해설과 시세를 붙였습니다.');
+    const open=$('#sheet [data-detail]');if(open&&open.dataset.detail===id)openWine(id);
+  }catch(e){toast(aiMsg(e))}
+}
+
+function openWine(id,over){
+  const w=over||wines.find(x=>x.id===id);if(!w){closeSheet();return}
+  const st=winState(w);const kv=(k,v)=>v||v===0?`<dt>${k}</dt><dd>${esc(v)}</dd>`:'';
+  const win=w.drinkFrom||w.drinkTo?`${w.drinkFrom||''}~${w.drinkTo||''}`:'';
+  const diff=w.price&&w.marketKRW?Math.round((w.marketKRW-w.price)/w.price*100):null;
+  const logs=drinks.filter(d=>d.wineId===id).length;
+  sheet(esc(title(w)),`<div data-detail="${esc(id)}" style="display:flex;flex-direction:column;gap:12px">
+    <div class="hero"><span class="v">${w.vintage?esc(w.vintage):'NV'}</span><span class="w-meta"><span class="chip" style="min-height:28px;padding:2px 10px"><span class="dot" style="background:${styleVar(w.style)}"></span>${esc(w.style||'')}</span>${st?`<span class="pill ${st[1]}">${st[0]}</span>`:''}<span>${Math.max(0,w.qty||0)}병 보유</span></span></div>
+    <div class="acts">
+      <button type="button" class="btn primary" data-act="drink" data-id="${esc(id)}" ${(w.qty||0)>0?'':'disabled'}>마시기</button>
+      <button type="button" class="btn" data-act="edit" data-id="${esc(id)}">수정</button>
+    </div>
+    ${w.about?`<div class="about"><small>${w.aboutWeb?'AI 해설 (웹 검색 결과를 요약)':'AI 해설 (AI 지식 기반)'}</small>${esc(w.about)}${w.pairing?'\n\n페어링: '+esc(w.pairing):''}</div>`:''}
+    ${w.sources&&w.sources.length?`<div class="hint">출처·검색 결과<br>${w.sources.map(x=>/^https?:\/\//.test(x.url)?`<a class="ext" style="font-size:12px" href="${esc(x.url)}" target="_blank" rel="noopener">${esc(String(x.title).slice(0,60))} ↗</a>`:'').join('<br>')}</div>`:''}
+    <dl class="kv">
+      ${kv('산지',[w.country,w.region].filter(Boolean).join(' · '))}${kv('마을 / 밭',w.appellation)}${kv('등급',w.classification)}${kv('품종',w.grape)}
+      ${kv('용량',w.size?w.size+'ml':'')}${kv('시음 적기',win)}${kv('보관 위치',locText(w))}${kv('태그',w.tags)}
+      ${kv('구매가',won(w.price))}${kv('구매처',w.store)}${kv('구매일',w.purchaseDate)}
+      ${w.marketKRW||w.marketUSD?`<dt>추정 시세</dt><dd>${w.marketKRW?won(w.marketKRW):''}${w.marketUSD?` (해외 약 $${Math.round(w.marketUSD).toLocaleString()})`:''}${diff!==null?` · 구매가 대비 ${diff>=0?'+':''}${diff}%`:''}<br><span class="hint">${w.aboutWeb?'웹 검색 기반':'AI 추정'} · 신뢰도 ${esc(w.marketConf||'–')} · ${esc(w.marketAt||'')}${w.marketNote?' · '+esc(w.marketNote):''}</span></dd>`:''}
+      ${kv('메모',w.memo)}${logs?kv('마신 기록',logs+'회'):''}
+    </dl>
+    <a class="ext" href="${esc(searcherUrl(w))}" target="_blank" rel="noopener">Wine-Searcher에서 실제 시세와 평점 확인 ↗</a>
+    <div class="acts">
+      <button type="button" class="btn" data-act="enrich" data-id="${esc(id)}">${w.about?'AI 해설·시세 다시 받기':'AI 해설·시세 받기'}</button>
+      <button type="button" class="btn danger" data-act="ask-del-wine" data-id="${esc(id)}">삭제</button>
+    </div></div>`);
+}
+
+function openDrink(wineId,drinkId){
+  const d=drinkId?drinks.find(x=>x.id===drinkId):null;
+  const w=wines.find(x=>x.id===(d?d.wineId:wineId));
+  const head=d?`${d.vintage?esc(d.vintage)+' ':''}${esc(d.title||'')}`:`${w&&w.vintage?esc(w.vintage)+' ':''}${esc(w?title(w):'')}`;
+  sheet(d?'시음 기록':'마시기',`<p class="hint" style="font-size:14px;color:var(--ink)">${head}</p>
+    <form id="drink-form" class="grid" data-wine="${esc(d?d.wineId:wineId)}" data-id="${esc(drinkId||'')}">
+      ${fld('d-date','마신 날',d?d.date:today(),'type="date"')}
+      ${fld('d-score','평점 (100점 만점)',d?d.score:'','inputmode="numeric"')}
+      ${fld('d-occasion','자리',d?d.occasion:'','placeholder="예: 결혼기념일 저녁"',true)}
+      ${fld('d-people','함께한 사람',d?d.people:'','',true)}
+      ${fld('d-pairing','함께한 음식',d?d.pairing:(w&&w.pairing?'':''),'',true)}
+      <div class="field full"><label for="d-note">시음기</label><textarea id="d-note" placeholder="향, 맛, 여운, 다음에 열 때 참고할 점">${esc(d?d.note:'')}</textarea></div>
+      <div class="field full"><button type="submit" class="btn primary" id="save-drink">${d?'저장':'기록하고 1병 차감'}</button></div>
+      ${d?`<div class="field full"><button type="button" class="btn danger" data-act="ask-del-drink" data-id="${esc(drinkId)}">이 기록 삭제</button></div>`:''}
+    </form>`);
+}
+async function saveDrink(form){
+  const wineId=form.dataset.wine,id=form.dataset.id;const v=k=>$('#'+k).value.trim();
+  const btn=$('#save-drink');btn.disabled=true;
+  const old=id?drinks.find(x=>x.id===id)||{}:{};
+  const w=wines.find(x=>x.id===wineId);
+  const d={...old,wineId,date:v('d-date')||today(),score:num(v('d-score')),occasion:v('d-occasion'),people:v('d-people'),pairing:v('d-pairing'),note:$('#d-note').value.trim(),
+    title:old.title||(w?title(w):''),vintage:old.vintage??(w?w.vintage:null),style:old.style||(w?w.style:''),createdAt:old.createdAt||Date.now()};
+  try{
+    await put('drinks',id||newId(),d);
+    if(!id&&w)await put('wines',wineId,{...w,qty:Math.max(0,(w.qty||0)-1)});
+  }catch(e){btn.disabled=false;toast('저장하지 못했습니다. 다시 시도해 주세요.');return}
+  closeSheet();toast(id?'기록을 저장했습니다.':'마신 기록을 남겼습니다.');
+}
+function csv(){
+  const cols=[['producer','생산자'],['name','와인명'],['vintage','빈티지'],['style','스타일'],['country','국가'],['region','지역'],['appellation','마을/밭'],['classification','등급'],['grape','품종'],['size','용량'],['qty','수량'],['price','구매가'],['purchaseDate','구매일'],['store','구매처'],['location','보관위치'],['slot','칸'],['drinkFrom','적기시작'],['drinkTo','적기끝'],['marketKRW','추정시세'],['tags','태그'],['memo','메모']];
+  const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
+  return[cols.map(c=>q(c[1])).join(','),...wines.map(w=>cols.map(c=>q(w[c[0]])).join(','))].join('\n');
+}
+
+let pendingImport=null;
+function openSettings(){
+  const c=getCfg();
+  sheet('설정',`
+    <div class="grid">
+      <div class="field full"><label for="c-key">Claude API 키</label><input id="c-key" type="password" autocomplete="off" value="${esc(c.key)}" placeholder="sk-ant-…">
+        <p class="hint">라벨 인식과 와인 해설에 씁니다. Claude Console(platform.claude.com)에서 발급하며, 쓴 만큼 요금이 나옵니다. 키는 이 폰에만 저장됩니다.</p></div>
+      <div class="field full"><label for="c-model">모델</label><input id="c-model" value="${esc(c.model)}" autocomplete="off"></div>
+      <label class="check full" style="grid-column:1/-1;font-size:14px;color:var(--ink)"><input type="checkbox" id="c-web" ${c.web?'checked':''}> 해설과 시세를 웹 검색으로 찾기 (더 정확하지만 느리고 요금이 더 듭니다)</label>
+      <div class="field full"><button type="button" class="btn primary" data-act="save-cfg">설정 저장</button></div>
+    </div>
+    <div class="panel"><h2>백업</h2>
+      <p class="hint">와인 목록과 기록은 이 폰 안에만 저장됩니다. 폰을 바꾸거나 브라우저 데이터를 지우기 전에 백업 파일을 받아 두세요.</p>
+      <div class="acts" style="margin-top:8px"><button type="button" class="btn" data-act="export">백업 파일 저장</button><button type="button" class="btn" data-act="import-pick">백업 불러오기</button></div>
+      <input type="file" id="c-import" accept="application/json,.json" hidden>
+    </div>`);
+}
+
+/* ---------- events ---------- */
+$('#set-btn').addEventListener('click',openSettings);
+$('#banner').addEventListener('click',openSettings);
+window.addEventListener('hashchange',render);
+$('#add-btn').addEventListener('click',()=>openForm());
+$('#q').addEventListener('input',e=>{F.q=e.target.value;renderCellar()});
+$('#sort').addEventListener('change',e=>{F.sort=e.target.value;renderCellar()});
+$('#country').addEventListener('change',e=>{F.country=e.target.value;renderCellar()});
+$('#loc').addEventListener('change',e=>{F.loc=e.target.value;renderCellar()});
+$('#sheet').addEventListener('change',async e=>{
+  if(e.target.id==='c-import'){
+    const f=e.target.files&&e.target.files[0];if(!f)return;
+    try{
+      const d=JSON.parse(await f.text());
+      if(!Array.isArray(d.wines))throw 0;
+      pendingImport={wines:d.wines.filter(x=>x&&x.id),drinks:Array.isArray(d.drinks)?d.drinks.filter(x=>x&&x.id):[]};
+      sheet('백업 불러오기',`<p>지금 폰에 있는 와인 ${wines.length}종과 기록 ${drinks.length}건을 지우고, 백업의 와인 ${pendingImport.wines.length}종과 기록 ${pendingImport.drinks.length}건으로 바꿉니다.</p><div class="acts"><button type="button" class="btn" data-act="close">취소</button><button type="button" class="btn danger" data-act="do-import">바꾸기</button></div>`);
+    }catch(_){toast('백업 파일을 읽을 수 없습니다.')}
+    return;
+  }if(e.target.id==='f-location'){const w=$('#newloc-wrap');w.hidden=e.target.value!=='__new';if(!w.hidden)$('#f-newloc').focus()}});
+$('#show-empty').addEventListener('change',e=>{F.empty=e.target.checked;renderCellar()});
+$('#style-chips').addEventListener('click',e=>{const b=e.target.closest('[data-style]');if(b){F.style=b.dataset.style;renderCellar()}});
+document.querySelector('main').addEventListener('click',e=>{
+  const w=e.target.closest('[data-wine]');if(w){openWine(w.dataset.wine);return}
+  const d=e.target.closest('[data-drink]');if(d){openDrink(null,d.dataset.drink);return}
+  if(e.target.id==='csv-btn'){sheet('CSV 내보내기',`<p class="hint">아래 내용을 복사해 엑셀이나 메모에 붙여 넣으세요.</p><textarea class="csv" id="csv-out" readonly>${esc(csv())}</textarea><div class="acts"><button type="button" class="btn primary" data-act="dl-csv">파일로 저장</button><button type="button" class="btn" data-act="copy-csv">복사</button></div>`)}
+});
+$('#sheet').addEventListener('click',async e=>{
+  if(e.target.id==='sheet'){if(!$('#sheet form'))closeSheet();return}
+  const b=e.target.closest('[data-act]');if(!b)return;
+  const a=b.dataset.act,id=b.dataset.id;
+  if(a==='close')closeSheet();
+  else if(a==='shoot')$('#f-cam').click();
+  else if(a==='pick')$('#f-file').click();
+  else if(a==='edit')openForm(id);
+  else if(a==='drink')openDrink(id);
+  else if(a==='enrich'){b.disabled=true;await enrich(id);if(b.isConnected)b.disabled=false}
+  else if(a==='ask-del-wine'){const w=wines.find(x=>x.id===id);sheet('와인 삭제',`<p>${esc(w?title(w):'')}을(를) 셀러에서 삭제합니다. 마신 기록은 남습니다.</p><div class="acts"><button type="button" class="btn" data-act="back-wine" data-id="${esc(id)}">취소</button><button type="button" class="btn danger" data-act="del-wine" data-id="${esc(id)}">삭제</button></div>`)}
+  else if(a==='back-wine')openWine(id);
+  else if(a==='del-wine'){try{await del('wines',id);closeSheet();toast('삭제했습니다.')}catch(_){toast('삭제하지 못했습니다.')}}
+  else if(a==='ask-del-drink'){sheet('기록 삭제',`<p>이 시음 기록을 삭제합니다. 잘못 누른 기록이라면 재고를 1병 되돌릴 수 있습니다.</p><div class="acts"><button type="button" class="btn danger" data-act="del-drink" data-id="${esc(id)}">기록만 삭제</button><button type="button" class="btn danger" data-act="del-drink-restore" data-id="${esc(id)}">삭제하고 1병 복구</button></div><button type="button" class="btn" data-act="close">취소</button>`)}
+  else if(a==='del-drink'||a==='del-drink-restore'){
+    const d=drinks.find(x=>x.id===id);
+    try{
+      await del('drinks',id);
+      if(a==='del-drink-restore'&&d){const w=wines.find(x=>x.id===d.wineId);if(w)await put('wines',w.id,{...w,qty:(w.qty||0)+1})}
+      closeSheet();toast('기록을 삭제했습니다.');
+    }catch(_){toast('삭제하지 못했습니다.')}
+  }
+  else if(a==='save-cfg'){setCfg({key:$('#c-key').value.trim(),model:$('#c-model').value.trim()||DEF.model,web:$('#c-web').checked});closeSheet();render();toast('설정을 저장했습니다.')}
+  else if(a==='export'){download('wine-cellar-'+today()+'.json',JSON.stringify({app:'wine-cellar',version:1,exportedAt:new Date().toISOString(),wines,drinks}),'application/json');toast('백업 파일을 저장했습니다.')}
+  else if(a==='import-pick')$('#c-import').click();
+  else if(a==='do-import'){if(pendingImport){wines=pendingImport.wines;drinks=pendingImport.drinks;pendingImport=null;persist();closeSheet();render();toast('백업을 불러왔습니다.')}}
+  else if(a==='dl-csv'){download('wine-cellar-'+today()+'.csv','﻿'+csv(),'text/csv');toast('CSV 파일을 저장했습니다.')}
+  else if(a==='copy-csv'){const t=$('#csv-out');try{await navigator.clipboard.writeText(t.value);toast('복사했습니다.')}catch(_){t.focus();t.select();toast('전체 선택했습니다. 길게 눌러 복사해 주세요.')}}
+});
+$('#sheet').addEventListener('change',e=>{if(e.target.id==='f-cam'||e.target.id==='f-file'){scan(e.target.files&&e.target.files[0]);e.target.value=''}});
+$('#sheet').addEventListener('submit',e=>{e.preventDefault();if(e.target.id==='wine-form')saveWine(e.target);else if(e.target.id==='drink-form')saveDrink(e.target)});
+render();
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body>
+</html>

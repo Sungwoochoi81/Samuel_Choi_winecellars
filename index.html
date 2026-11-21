@@ -1688,7 +1688,13 @@ $('#direct-btn').addEventListener('click',()=>openDirect());
 $('#batch-btn').addEventListener('click',()=>{openBatch();if(!batch.length)$('#batch-cam').click()});
 for(const sel of['#batch-cam','#batch-file'])$(sel).addEventListener('change',e=>{const fs=[...(e.target.files||[])];e.target.value='';if(fs.length)batchAdd(fs)});
 $('#banner').addEventListener('click',()=>openSettings());
-window.addEventListener('hashchange',render);
+/* 셀러 탭을 떠나 다른 탭으로 가면 조회 조건을 처음 상태로 되돌린다(같은 화면에서 새로고침할 때는 유지) */
+let lastRoute=route();
+window.addEventListener('hashchange',()=>{
+  const r=route();
+  if(lastRoute==='cellar'&&r!=='cellar'){Object.assign(F,{q:'',style:'',country:'',grape:'',band:'',loc:'',state:'',sort:'recent',empty:false});keepFilter()}
+  lastRoute=r;render();
+});
 $('#add-btn').addEventListener('click',()=>openForm());
 $('#q').addEventListener('input',e=>{F.q=e.target.value;renderCellar()});
 $('#sort').addEventListener('change',e=>{F.sort=e.target.value;renderCellar()});

@@ -229,12 +229,15 @@ header{padding-bottom:8px}
 .brand svg{width:24px;height:24px;color:var(--wine)}
 h1{font-size:19px;font-weight:700;white-space:nowrap;letter-spacing:-.02em}
 .hbtns{display:flex;gap:6px;align-items:center;flex:none}
-.hbtns .hb{padding:0 10px;font-size:13px;white-space:nowrap}
-.hbtns .icon-btn{width:40px}
-@media (max-width:399px){.brand svg{display:none}.hbtns{gap:5px}.hbtns .hb{padding:0 8px}.ai-btn{padding:0 10px 0 9px}}
-.hbtns .btn,.hbtns .icon-btn{min-height:40px;height:40px}
-.ai-btn{display:inline-flex;align-items:center;gap:5px;height:40px;padding:0 13px 0 11px;border-radius:999px;border:1px solid color-mix(in srgb,var(--gold) 55%,transparent);background:linear-gradient(140deg,var(--card-a),var(--card-b));color:var(--card-ink);font-weight:700;font-size:14px;letter-spacing:.02em;white-space:nowrap;flex:none}
+/* 헤더 버튼: 같은 높이의 알약 모양으로 통일. AI는 짙은 녹색, 보조 버튼은 옅은 녹색, 추가만 버건디로 강조 */
+.hbtns .hb,.ai-btn{display:inline-flex;align-items:center;justify-content:center;gap:4px;height:38px;min-height:38px;padding:0 14px;border-radius:999px;font-size:13.5px;font-weight:600;line-height:1;letter-spacing:-.01em;white-space:nowrap;flex:none;border:1px solid transparent;margin:0}
+.hbtns .hb.tonal{background:color-mix(in srgb,var(--accent) 9%,var(--surface));border-color:color-mix(in srgb,var(--accent) 20%,transparent);color:var(--accent)}
+.hbtns .hb.solid{background:var(--wine);border-color:var(--wine);color:var(--on-wine);padding:0 14px 0 10px;box-shadow:0 4px 10px -6px color-mix(in srgb,var(--wine) 80%,transparent)}
+.hbtns .hb.solid svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;flex:none}
+.hbtns .icon-btn{width:38px;height:38px;min-height:38px;border-radius:50%}
+.ai-btn{padding:0 14px 0 11px;gap:5px;border-color:color-mix(in srgb,var(--gold) 55%,transparent);background:linear-gradient(140deg,var(--card-a),var(--card-b));color:var(--card-ink);font-weight:700;letter-spacing:.02em;box-shadow:0 4px 10px -6px rgba(0,0,0,.5)}
 .ai-btn svg{width:15px;height:15px;fill:var(--gold);stroke:none;flex:none}
+@media (max-width:399px){.brand svg{display:none}.hbtns{gap:5px}.hbtns .hb{padding:0 10px}.hbtns .hb.solid{padding:0 11px 0 8px}.ai-btn{padding:0 11px 0 9px}.hbtns .hb,.ai-btn{font-size:13px}}
 .brand h1{overflow:hidden;text-overflow:ellipsis}
 .chg .who{font-weight:600;overflow-wrap:anywhere}
 .chg .line{font-size:13px;overflow-wrap:anywhere}
@@ -372,7 +375,7 @@ nav a svg{width:22px;height:22px}
 <body>
 <header>
   <div class="brand"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10l-1 7a4 4 0 0 1-8 0z"/><path d="M12 14v6M8 21h8"/></svg><h1>Ma Cave</h1></div>
-  <div class="hbtns"><button class="ai-btn" id="ai-btn" type="button" aria-label="AI에게 시키기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>AI</button><button class="btn hb" id="batch-btn" type="button">일괄추가</button><button class="btn hb" id="direct-btn" type="button">직구등록</button><button class="btn primary hb" id="add-btn" type="button">＋ 추가</button><button class="icon-btn" id="set-btn" type="button" aria-label="설정"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h9M19 6h1M4 12h3M13 12h7M4 18h11"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg></button></div>
+  <div class="hbtns"><button class="ai-btn" id="ai-btn" type="button" aria-label="AI에게 시키기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>AI</button><button class="hb tonal" id="batch-btn" type="button">일괄추가</button><button class="hb tonal" id="direct-btn" type="button">직구등록</button><button class="hb solid" id="add-btn" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5.5v13M5.5 12h13"/></svg>추가</button><button class="icon-btn" id="set-btn" type="button" aria-label="설정"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h9M19 6h1M4 12h3M13 12h7M4 18h11"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg></button></div>
 </header>
 <div id="banner" hidden>라벨 인식과 와인 해설을 쓰려면 설정에서 API 키를 넣어 주세요. 직접 입력과 기록은 키 없이도 됩니다.</div>
 

@@ -524,8 +524,29 @@ function sheet(head,body){
   const s=$('#sheet');
   s.innerHTML=`<div class="sheet" role="dialog" aria-modal="true"><div class="sheet-head"><h2>${head}</h2><button type="button" class="x" data-act="close" aria-label="닫기">×</button></div><div class="sheet-body">${body}</div></div>`;
   s.hidden=false;
+  /* 뒤로가기: 열린 화면을 차례로 기억해 두고, 폰의 뒤로가기 버튼이 앱을 닫는 대신 이전 화면으로 돌아가게 한다 */
+  const scr=nextScr||{key:'anon:'+head};nextScr=null;
+  const i=sheetStack.findIndex(x=>x.key===scr.key);if(i>=0)sheetStack.length=i;
+  sheetStack.push(scr);
+  if(!armed&&!backing){history.pushState({sheet:1},'');armed=true}
 }
-function closeSheet(){$('#sheet').hidden=true;$('#sheet').innerHTML=''}
+const sheetStack=[];let nextScr=null,armed=false,backing=false;
+function hideSheet(){$('#sheet').hidden=true;$('#sheet').innerHTML='';sheetStack.length=0}
+function closeSheet(){hideSheet();if(armed&&!backing){backing=true;history.back()}}
+window.addEventListener('popstate',()=>{
+  if(backing){ /* 앱이 스스로 화면을 닫으며 되돌린 경우 */
+    backing=false;armed=false;
+    if(!$('#sheet').hidden){history.pushState({sheet:1},'');armed=true}
+    return;
+  }
+  if(!armed)return; /* 탭 이동은 hashchange가 처리 */
+  armed=false;
+  if($('#sheet').hidden)return;
+  sheetStack.pop();
+  while(sheetStack.length&&!sheetStack[sheetStack.length-1].fn)sheetStack.pop();
+  if(sheetStack.length){const t=sheetStack.pop();t.fn(...t.args)}else hideSheet();
+});
+if(history.state&&history.state.sheet)history.replaceState(null,'');
 
 const fld=(id,label,val,attrs='',full=false)=>`<div class="field${full?' full':''}"><label for="${id}">${label}</label><input id="${id}" value="${esc(val??'')}" ${attrs}></div>`;
 function openForm(id){
@@ -652,10 +673,10 @@ async function saveWine(form){
   const wid=id||newId();
   try{await put('wines',wid,w)}catch(e){btn.disabled=false;toast(e&&e.code==='quota_exceeded'?'저장 공간이 가득 찼습니다.':'저장하지 못했습니다. 다시 시도해 주세요.');return}
   if(pendingThumb){imgPut(wid,pendingThumb);pendingThumb=null;render()}
-  if(id){openWine(wid)}
+  if(id){sheetStack.pop();openWine(wid)}
   else{
     const now=!!(document.querySelector('[name=f-now]:checked')||{}).value;
-    if(now)openDrink(wid);else closeSheet();
+    if(now){sheetStack.length=0;openDrink(wid)}else closeSheet();
     toast(now?'셀러에 등록했습니다. 시음 기록을 남기면 1병이 차감됩니다.':!getCfg().key?'셀러에 등록했습니다. 설정에 API 키를 넣으면 AI 해설이 자동으로 붙습니다.':navigator.onLine===false?'셀러에 등록했습니다. 인터넷에 연결되면 AI 해설이 자동으로 붙습니다.':'셀러에 등록했습니다. AI 해설을 작성하는 중입니다…');
     queueAi(wid);
   }
@@ -851,9 +872,18 @@ function openSettings(){
     </div>`);
 }
 
+/* 화면을 여는 함수마다 '다시 여는 방법'을 기록해 뒤로가기에서 쓴다 */
+for(const n of['openForm','openWine','openDrink','openPicker','openMove','openSettings']){
+  const f=window[n];
+  window[n]=function(...a){
+    nextScr={key:n+':'+JSON.stringify(a.filter(x=>x===null||typeof x!=='object')),fn:(...b)=>window[n](...b),args:a.map(x=>x instanceof Event?undefined:x)};
+    try{return f(...a)}finally{nextScr=null}
+  };
+}
+
 /* ---------- events ---------- */
-$('#set-btn').addEventListener('click',openSettings);
-$('#banner').addEventListener('click',openSettings);
+$('#set-btn').addEventListener('click',()=>openSettings());
+$('#banner').addEventListener('click',()=>openSettings());
 window.addEventListener('hashchange',render);
 $('#add-btn').addEventListener('click',()=>openForm());
 $('#q').addEventListener('input',e=>{F.q=e.target.value;renderCellar()});

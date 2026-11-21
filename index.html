@@ -189,7 +189,7 @@ nav a[aria-current=page]{color:var(--accent);border-top-color:var(--accent);font
 .chg .old{color:var(--muted);text-decoration:line-through;overflow-wrap:anywhere;font-size:13px}
 .chg .new{font-weight:600;overflow-wrap:anywhere}
 .scan{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:6px;position:sticky;top:0;z-index:3;flex:none;box-shadow:0 -8px 0 var(--bg),0 8px 14px -10px rgba(0,0,0,.35)}
-.scan .hint:empty{display:none}
+.scan .hint:has(#scan-status:empty){display:none}
 /* 등록·저장 버튼은 화면 아래에 따로 띠로 두어 스크롤과 상관없이 항상 보이게 한다 */
 .savebar{grid-column:1/-1;position:sticky;bottom:0;z-index:3;margin:4px -16px 0;padding:10px 16px calc(12px + env(safe-area-inset-bottom));background:var(--surface);border-top:1px solid var(--line);box-shadow:0 -8px 14px -12px rgba(0,0,0,.4)}
 .savebar .btn{width:100%}
@@ -492,13 +492,20 @@ function makeThumb(file){return new Promise((res,rej)=>{
   const u=URL.createObjectURL(file),im=new Image();
   im.onload=()=>{const k=Math.min(1,480/Math.max(im.width,im.height));const c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);res(c.toDataURL('image/jpeg',.72))};
   im.onerror=()=>{URL.revokeObjectURL(u);rej({code:'image_rejected'})};im.src=u})}
-async function onPhoto(file){
+/* 새 와인을 등록할 때는 사진을 여러 장(앞 라벨, 뒷 라벨, 병목 등) 모아 한꺼번에 읽는다. 저장되는 사진은 첫 장이다 */
+let scanImgs=[],scanSeq=0;
+async function onPhoto(file,more){
   if(!file)return;const form=$('#wine-form');
-  try{pendingThumb=await makeThumb(file);const im=$('#f-thumb');if(im){im.src=pendingThumb;im.hidden=false}}
-  catch(_){if($('#scan-status'))$('#scan-status').textContent='사진을 읽을 수 없습니다. 다른 사진으로 시도해 주세요.';return}
-  if(form&&!form.dataset.id&&!form.dataset.mode)scan(file);
+  const adding=form&&!form.dataset.id&&!form.dataset.mode;
+  try{
+    const t=await makeThumb(file);
+    if(!adding||!scanImgs.length){pendingThumb=t;const im=$('#f-thumb');if(im){im.src=t;im.hidden=false}}
+    if(adding){if(scanImgs.length>=4){if($('#scan-status'))$('#scan-status').textContent='사진은 4장까지 함께 읽습니다.';return}scanImgs.push(await imgB64(file));const c=$('#scan-count');if(c){c.textContent='사진 '+scanImgs.length+'장';c.hidden=false}}
+  }catch(_){if($('#scan-status'))$('#scan-status').textContent='사진을 읽을 수 없습니다. 다른 사진으로 시도해 주세요.';return}
+  if(adding){if(!more)scan()}
   else if($('#scan-status'))$('#scan-status').textContent='사진을 바꿨습니다. 저장을 누르면 반영됩니다.';
 }
+async function onPhotos(files){const fs=[...(files||[])];for(let i=0;i<fs.length;i++)await onPhoto(fs[i],i<fs.length-1)}
 function download(name,text,type){const u=URL.createObjectURL(new Blob([text],{type}));const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1000)}
 
 /* ---------- Claude API (key stays on this phone) ---------- */
@@ -899,7 +906,7 @@ if(history.state&&history.state.sheet)history.replaceState(null,'');
 const fld=(id,label,val,attrs='',full=false)=>`<div class="field${full?' full':''}"><label for="${id}">${label}</label><input id="${id}" value="${esc(val??'')}" ${attrs}></div>`;
 /* mode: 없음=셀러 와인 추가/수정, 'incoming'=입고예정 항목 추가/수정, 'draft'=직구 내역 확인 중인 항목 수정(id는 순번), 'arrive'=입고예정 항목을 셀러에 등록 */
 function openForm(id,mode){
-  pendingThumb=null;mode=mode||'';
+  pendingThumb=null;scanImgs=[];scanSeq++;mode=mode||'';
   /* 새로 입력할 때 구매 통화·구매처·보관 위치는 바로 전에 입력한 것을 기본값으로 */
   const prev=[...wines,...incoming].filter(x=>x&&x.createdAt).sort((a,b)=>b.createdAt-a.createdAt),lastW={...([...wines].filter(x=>x&&x.createdAt).sort((a,b)=>b.createdAt-a.createdAt)[0]||{})},last=prev[0]||{}; /* 복사본: 원래 와인 데이터를 건드리지 않는다 */
   let used={};try{used=JSON.parse(localStorage.getItem('cellar.last')||'{}')||{}}catch(_){}
@@ -919,8 +926,8 @@ function openForm(id,mode){
           ${edit?'<button type="submit" form="wine-form" class="btn primary" id="save-top">저장</button>':''}
         </div></div>
       <input type="file" id="f-cam" accept="image/*" capture="environment" hidden>
-      <input type="file" id="f-file" accept="image/*" hidden>
-      <p class="hint" id="scan-status">${edit?'':mode==='arrive'?'도착한 병의 라벨 사진을 남길 수 있습니다. 보관 위치를 고르고 등록하세요.':'라벨 사진을 올리면 AI가 아래 칸을 채웁니다. 직접 입력해도 됩니다.'}</p>
+      <input type="file" id="f-file" accept="image/*" ${edit||mode?'':'multiple'} hidden>
+      <p class="hint"><b id="scan-count" hidden style="color:var(--ink);margin-right:6px"></b><span id="scan-status">${edit?'':mode==='arrive'?'도착한 병의 라벨 사진을 남길 수 있습니다. 보관 위치를 고르고 등록하세요.':'라벨 사진을 올리면 AI가 아래 칸을 채웁니다. 앞면·뒷면·병목을 여러 장 찍으면 함께 읽습니다.'}</span></p>
     </div>`}
     <form id="wine-form" class="grid" data-id="${esc(id||'')}" data-mode="${mode}">
       ${fld('f-producer','생산자 (도멘)',w.producer,'',true)}
@@ -992,21 +999,21 @@ function priceText(w){
 const SCAN_PROMPT=`사진은 와인 병 라벨이다. 라벨을 읽고 아래 키를 가진 JSON 객체 하나만 답하라. 다른 글은 쓰지 마라.
 {"producer": 생산자명(원어), "name": 퀴베/와인명(원어, 생산자명과 빈티지 제외), "vintage": 연도 숫자. 논빈티지는 "NV", 멀티 빈티지는 "MV", "style": "레드"|"화이트"|"스파클링"|"로제"|"디저트"|"주정강화", "country": 국가(한국어), "region": 지역(영문 표기, 예: Burgundy, Bordeaux, Napa Valley), "appellation": 마을/밭/아펠라시옹(원어), "classification": 등급(예: Grand Cru, 1er Cru, Village, DOCG) 또는 "", "grape": 주요 품종(영문 표기, 쉼표 구분. 예: Pinot Noir), "size": 용량 ml 숫자(안 보이면 750)}
 라벨에서 읽을 수 없는 값은 "" 또는 null로 둔다. 국가, 지역, 품종, 스타일은 아펠라시옹과 생산자로부터 추론해도 된다.`;
-async function scan(file){
-  if(!file)return;
-  const st=$('#scan-status');if(!st)return;
+async function scan(){
+  if(!scanImgs.length)return;
+  const st=$('#scan-status');if(!st)return;const seq=++scanSeq,n=scanImgs.length;
   if(!getCfg().key){st.textContent='설정에서 API 키를 넣으면 라벨 인식을 쓸 수 있습니다. 지금은 아래 칸에 직접 입력해 주세요.';return}
-  st.textContent='라벨을 읽는 중입니다. 10~30초쯤 걸립니다…';
+  st.textContent=n>1?`사진 ${n}장을 함께 읽는 중입니다. 10~30초쯤 걸립니다…`:'라벨을 읽는 중입니다. 10~30초쯤 걸립니다…';
   try{
-    const data=await imgB64(file);
-    const out=await callClaude([{type:'image',source:{type:'base64',media_type:'image/jpeg',data}},{type:'text',text:SCAN_PROMPT}],false);
+    const out=await callClaude([...scanImgs.map(data=>({type:'image',source:{type:'base64',media_type:'image/jpeg',data}})),{type:'text',text:SCAN_PROMPT+(n>1?`\n사진 ${n}장은 모두 같은 병을 다른 면(앞 라벨, 뒷 라벨, 병목, 캡슐 등)에서 찍은 것이다. 모든 사진을 합쳐 판단하고, 빈티지처럼 한 장에만 보이는 정보도 빠뜨리지 마라.`:'')}],false);
     const r=parseJSON(out.text);
-    if(!$('#wine-form'))return;
-    const set=(id,v)=>{const el=$('#'+id);if(el&&v!==null&&v!==undefined&&v!=='')el.value=v};
+    if(!$('#wine-form')||seq!==scanSeq)return; /* 그 사이 사진을 더 찍었으면 새 결과를 기다린다 */
+    /* 직접 고친 칸은 다시 읽어도 덮어쓰지 않는다 */
+    const set=(id,v)=>{const el=$('#'+id);if(!el||v===null||v===undefined||v==='')return;const untouched=el.dataset.ai!==undefined?el.value===el.dataset.ai:(el.value===''||id==='f-style'||id==='f-size');if(untouched){el.value=v;el.dataset.ai=el.value}};
     set('f-producer',r.producer);set('f-name',r.name);set('f-vintage',r.vintage);
     if(STYLES.some(x=>x[0]===r.style))set('f-style',r.style);
     set('f-country',r.country);set('f-region',regionEn(r.region));set('f-appellation',r.appellation);set('f-class',r.classification);set('f-grape',normGrapes(r.grape));set('f-size',r.size);
-    st.textContent='인식한 내용을 채웠습니다. 틀린 곳을 고친 뒤 가격과 구매처를 입력해 주세요.';
+    st.textContent=(n>1?`사진 ${n}장으로 읽은 내용을 채웠습니다.`:'인식한 내용을 채웠습니다.')+' 빈티지 등 빠진 정보가 있으면 다른 면(뒷면, 병목)을 더 찍으면 함께 읽습니다.';
   }catch(e){if($('#scan-status'))$('#scan-status').textContent=aiMsg(e)+' 직접 입력해도 됩니다.'}
 }
 async function saveWine(form){
@@ -1577,7 +1584,7 @@ $('#sheet').addEventListener('click',async e=>{
   else if(a==='dl-csv'){download('wine-cellar-'+today()+'.csv','﻿'+csv(),'text/csv');toast('CSV 파일을 저장했습니다.')}
   else if(a==='copy-csv'){const t=$('#csv-out');try{await navigator.clipboard.writeText(t.value);toast('복사했습니다.')}catch(_){t.focus();t.select();toast('전체 선택했습니다. 길게 눌러 복사해 주세요.')}}
 });
-$('#sheet').addEventListener('change',async e=>{if(e.target.id==='d-cam'||e.target.id==='d-file'){const f=e.target.files&&e.target.files[0];e.target.value='';if(!f)return;try{const t=await makeThumb(f);pendingDrinkThumb=t;const im=$('#d-thumb');if(im){im.src=t;im.hidden=false;$('#d-photo-note').textContent='저장을 누르면 사진이 함께 기록됩니다.'}}catch(_){if($('#d-photo-note'))$('#d-photo-note').textContent='사진을 읽을 수 없습니다. 다른 사진으로 시도해 주세요.'}return}if(e.target.id==='direct-file'){const fs=[...(e.target.files||[])];e.target.value='';attachFiles(inFiles,fs,'#direct-status').then(()=>filesUI(inFiles,'#direct-files','direct-unfile'));return}if(e.target.id==='askall-file'){const fs=[...(e.target.files||[])];e.target.value='';askAttach(fs);return}if(e.target.id==='f-cam'||e.target.id==='f-file'){onPhoto(e.target.files&&e.target.files[0]);e.target.value=''}});
+$('#sheet').addEventListener('change',async e=>{if(e.target.id==='d-cam'||e.target.id==='d-file'){const f=e.target.files&&e.target.files[0];e.target.value='';if(!f)return;try{const t=await makeThumb(f);pendingDrinkThumb=t;const im=$('#d-thumb');if(im){im.src=t;im.hidden=false;$('#d-photo-note').textContent='저장을 누르면 사진이 함께 기록됩니다.'}}catch(_){if($('#d-photo-note'))$('#d-photo-note').textContent='사진을 읽을 수 없습니다. 다른 사진으로 시도해 주세요.'}return}if(e.target.id==='direct-file'){const fs=[...(e.target.files||[])];e.target.value='';attachFiles(inFiles,fs,'#direct-status').then(()=>filesUI(inFiles,'#direct-files','direct-unfile'));return}if(e.target.id==='askall-file'){const fs=[...(e.target.files||[])];e.target.value='';askAttach(fs);return}if(e.target.id==='f-cam'||e.target.id==='f-file'){const fs=[...(e.target.files||[])];e.target.value='';onPhotos(fs)}});
 $('#sheet').addEventListener('submit',e=>{e.preventDefault();if(e.target.id==='wine-form')saveWine(e.target);else if(e.target.id==='ask-form')askAi(e.target);else if(e.target.id==='askall-form')askAllAi();else if(e.target.id==='drink-form')saveDrink(e.target);else if(e.target.id==='move-form')saveMove(e.target)});
 render();
 imgInit();

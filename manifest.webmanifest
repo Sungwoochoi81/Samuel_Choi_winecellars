@@ -1,6 +1,6 @@
 {
-  "name": "나의 와인 셀러",
-  "short_name": "와인 셀러",
+  "name": "Ma Cave",
+  "short_name": "Ma Cave",
   "description": "내 와인 목록, 구매가, 시음 기록을 관리합니다.",
   "start_url": "./index.html",
   "scope": "./",

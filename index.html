@@ -211,6 +211,7 @@ h1{font-size:19px;font-weight:700;white-space:nowrap;letter-spacing:-.02em}
 #list .w-top{display:flex;gap:6px;align-items:center;min-width:0;font-size:12px;line-height:1.35;white-space:nowrap;overflow:hidden}
 #list .w-vint,#list .w-vint.nv{font-size:12px;flex:none}
 #list .w-loc{color:var(--muted);overflow:hidden;text-overflow:ellipsis;min-width:0;font-size:11.5px}
+#list .w-viv{color:var(--gold-ink);font-weight:700;font-variant-numeric:tabular-nums;flex:none}
 #list .w-top .pill{font-size:10.5px;padding:0 7px}
 #list .w-name{font-size:15px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 #list .w-sub{font-size:12px;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -258,6 +259,7 @@ nav a svg{width:22px;height:22px}
           <option value="price">구매가 높은 순</option>
           <option value="mktdesc">현재 시세 높은 순</option>
           <option value="mktasc">현재 시세 낮은 순</option>
+          <option value="vivino">Vivino 평점 높은 순</option>
           <option value="name">이름순</option>
           <option value="window">시음 적기 빠른 순</option>
         </select>
@@ -280,6 +282,7 @@ nav a svg{width:22px;height:22px}
 </nav>
 
 <div id="sheet" hidden></div>
+<input type="file" id="cam-direct" accept="image/*" capture="environment" hidden>
 <div id="toast" hidden role="status"></div>
 
 <script>
@@ -548,6 +551,7 @@ function renderCellar(){
     price:(a,b)=>(b.price||0)-(a.price||0),
     mktdesc:(a,b)=>(b.marketKRW||-1)-(a.marketKRW||-1),
     mktasc:(a,b)=>(a.marketKRW||big)-(b.marketKRW||big),
+    vivino:(a,b)=>(b.vivino||-1)-(a.vivino||-1),
     name:(a,b)=>title(a).localeCompare(title(b)),
     window:(a,b)=>(a.drinkFrom||a.drinkTo||big)-(b.drinkFrom||b.drinkTo||big)
   };
@@ -562,7 +566,7 @@ function renderCellar(){
     const out=!((w.qty||0)>0);
     return`<button type="button" class="wine${out?' empty':''}" data-wine="${esc(w.id)}">
       <span class="thumb" style="--c:${styleVar(w.style)}">${imgTag(w.id)||GLASS}</span>
-      <span class="w-main"><span class="w-top"><span class="w-vint${w.vintage?'':' nv'}">${w.vintage?esc(w.vintage):'NV'}</span>${st&&!out?`<span class="pill ${st[1]}">${st[0]}</span>`:''}${aiStatus(w)?`<span class="pill ai">AI 해설 ${aiStatus(w)}</span>`:''}${w.location?`<span class="w-loc">${esc(locText(w))}</span>`:''}</span>
+      <span class="w-main"><span class="w-top"><span class="w-vint${w.vintage?'':' nv'}">${w.vintage?esc(w.vintage):'NV'}</span>${st&&!out?`<span class="pill ${st[1]}">${st[0]}</span>`:''}${aiStatus(w)?`<span class="pill ai">AI 해설 ${aiStatus(w)}</span>`:''}${w.vivino?`<span class="w-viv" title="Vivino 평점">★ ${Number(w.vivino).toFixed(1)}</span>`:''}${w.location?`<span class="w-loc">${esc(locText(w))}</span>`:''}</span>
         <span class="w-name">${esc(title(w))}</span>
         ${sub?`<span class="w-sub">${esc(sub)}</span>`:''}
         ${w.price||w.marketKRW?`<span class="w-meta">${w.price?`<span class="price">구매 ${won(w.price)}</span>`:''}${w.marketKRW?`<span class="price">시세 ${won(w.marketKRW)}</span>`:''}</span>`:''}
@@ -826,13 +830,15 @@ async function enrich(id,auto){
  "avgUSD": 이 용량 1병의 해외 평균 소매가(세전, USD 숫자) 또는 null,
  "avgKRW": 한국 소매 기준 예상 가격(원 숫자) 또는 null,
  "confidence": "높음"|"보통"|"낮음",
- "note": 가격의 근거나 주의점 한국어 한 문장}`;
+ "note": 가격의 근거나 주의점 한국어 한 문장,
+ "vivino": Vivino(vivino.com)에 표시된 이 와인의 평점(5점 만점 숫자, 예: 4.3). 웹 검색으로 Vivino 평점을 실제로 확인한 경우에만 적고, 확인하지 못했거나 웹을 볼 수 없으면 반드시 null. 추측하지 마라,
+ "vivinoCount": 그 평점의 평가 수(숫자) 또는 null}`;
   if(!auto)toast(cfg.web?'웹에서 와인 정보를 찾는 중입니다. 1분쯤 걸릴 수 있습니다…':'AI 해설과 시세를 받는 중입니다…');
   try{
     const out=await callClaude(prompt,cfg.web);
     const r=parseJSON(out.text);
     const cur=wines.find(x=>x.id===id);if(!cur)return'gone';
-    const upd={...cur,aiPending:false,aiTries:0,aiErr:r.about?'':'이 와인의 정보를 찾지 못했습니다.',about:r.about||cur.about||'',pairing:r.pairing||cur.pairing||'',marketKRW:num(r.avgKRW),marketUSD:num(r.avgUSD),marketConf:r.confidence||'',marketNote:r.note||'',marketAt:today(),aboutWeb:!!cfg.web,sources:cfg.web?out.sources:[]};
+    const upd={...cur,aiPending:false,aiTries:0,aiErr:r.about?'':'이 와인의 정보를 찾지 못했습니다.',about:r.about||cur.about||'',pairing:r.pairing||cur.pairing||'',marketKRW:num(r.avgKRW),marketUSD:num(r.avgUSD),marketConf:r.confidence||'',marketNote:r.note||'',...(cfg.web&&num(r.vivino)>=1&&num(r.vivino)<=5?{vivino:Math.round(num(r.vivino)*10)/10,vivinoN:num(r.vivinoCount),vivinoAt:today()}:{}),marketAt:today(),aboutWeb:!!cfg.web,sources:cfg.web?out.sources:[]};
     if(!cur.drinkFrom&&num(r.drinkFrom))upd.drinkFrom=num(r.drinkFrom);
     if(!cur.drinkTo&&num(r.drinkTo))upd.drinkTo=num(r.drinkTo);
     await put('wines',id,upd);
@@ -864,7 +870,7 @@ function openWine(id,over){
     ${w.about?`<div class="about"><small>${w.aboutWeb?'AI 해설 (웹 검색 결과를 요약)':'AI 해설 (AI 지식 기반)'}</small>${esc(w.about)}${w.pairing?'\n\n페어링: '+esc(w.pairing):''}</div>`:''}
     ${w.sources&&w.sources.length?`<div class="hint">출처·검색 결과<br>${w.sources.map(x=>/^https?:\/\//.test(x.url)?`<a class="ext" style="font-size:12px" href="${esc(x.url)}" target="_blank" rel="noopener">${esc(String(x.title).slice(0,60))} ↗</a>`:'').join('<br>')}</div>`:''}
     <dl class="kv">
-      ${kv('산지',[w.country,w.region].filter(Boolean).join(' · '))}${kv('마을 / 밭',w.appellation)}${kv('등급',w.classification)}${kv('품종',w.grape)}
+      ${kv('산지',[w.country,w.region].filter(Boolean).join(' · '))}${kv('마을 / 밭',w.appellation)}${kv('등급',w.classification)}${w.vivino?`<dt>Vivino 평점</dt><dd>★ ${Number(w.vivino).toFixed(1)}${w.vivinoN?` (${Math.round(w.vivinoN).toLocaleString()}명 평가)`:''}<br><span class="hint">AI가 웹 검색으로 확인한 값 · ${esc(w.vivinoAt||'')}</span></dd>`:''}${kv('품종',w.grape)}
       ${kv('용량',w.size?w.size+'ml':'')}${kv('시음 적기',win)}${kv('보관 위치',locText(w))}
       ${w.price||w.price===0?`<dt>구매가</dt><dd>${esc(priceText(w))}${w.fxRate?`<br><span class="hint">환율 ${amt(w.fxRate*fxUnit(w.currency))}원 / ${fxUnit(w.currency)} ${esc(w.currency)} · ${esc(w.fxDate||'')}</span>`:''}</dd>`:''}${kv('구매처',w.store)}${kv('구매일',w.purchaseDate)}
       ${w.marketKRW||w.marketUSD?`<dt>추정 시세</dt><dd>${w.marketKRW?won(w.marketKRW):''}${w.marketUSD?` (해외 약 $${Math.round(w.marketUSD).toLocaleString()})`:''}${diff!==null?` · 구매가 대비 ${diff>=0?'+':''}${diff}%`:''}<br><span class="hint">${w.aboutWeb?'웹 검색 기반':'AI 추정'} · 신뢰도 ${esc(w.marketConf||'–')} · ${esc(w.marketAt||'')}${w.marketNote?' · '+esc(w.marketNote):''}</span></dd>`:''}
@@ -1077,7 +1083,9 @@ $('#sheet').addEventListener('change',async e=>{
   if(e.target.id==='f-location'){const w=$('#newloc-wrap');w.hidden=e.target.value!=='__new';if(!w.hidden)$('#f-newloc').focus()}});
 $('#show-empty').addEventListener('change',e=>{F.empty=e.target.checked;renderCellar()});
 $('#style-chips').addEventListener('click',e=>{const b=e.target.closest('[data-style]');if(b){F.style=b.dataset.style;renderCellar()}});
-$('#cam-btn').addEventListener('click',()=>{openForm();const c=$('#f-cam');if(c)c.click()});
+/* 가운데 카메라 버튼: 다른 화면을 거치지 않고 곧바로 카메라를 연다. 찍고 나면 등록 화면이 열리고 라벨을 읽는다 */
+$('#cam-btn').addEventListener('click',()=>$('#cam-direct').click());
+$('#cam-direct').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];e.target.value='';if(!f)return;openForm();onPhoto(f)});
 $('#state-clear').addEventListener('click',()=>{F.state='';renderCellar()});
 function goCellar(){if(route()==='cellar')renderCellar();else location.hash='#cellar'}
 document.querySelector('main').addEventListener('click',e=>{

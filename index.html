@@ -6,15 +6,15 @@
 <meta name="theme-color" content="#f4f2ee" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#121413" media="(prefers-color-scheme: dark)">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="icon-192-v2.png">
-<link rel="apple-touch-icon" href="icon-192-v2.png">
+<link rel="icon" href="icon-192-v3.png">
+<link rel="apple-touch-icon" href="icon-192-v3.png">
 <title>나의 와인 셀러</title>
 <style>
 @font-face{font-family:'Pretendard Variable';font-weight:45 920;font-style:normal;font-display:swap;src:url('PretendardVariable.woff2') format('woff2-variations')}
 /* Layout idea: a cellar ledger. Each lot is a row with a style-coloured capsule stripe on the left,
    the vintage set large in the display face, and the bottle count on the right. Sheets slide up for all editing. */
 :root{
-  --bg:#f4f2ee; --surface:#ffffff; --ink:#1c1e1d; --muted:#666a66; --line:#e3e0d9; --accent:#1f4a3d; --on-accent:#fff; --card-a:#1b211f; --card-b:#2d3733; --card-ink:#f3f1ea; --gold:#c9a96a;
+  --bg:#f4f2ee; --surface:#ffffff; --ink:#1c1e1d; --muted:#666a66; --line:#e3e0d9; --accent:#1f4a3d; --on-accent:#fff; --card-a:#143328; --card-b:#235443; --card-ink:#f5f1e6; --gold:#d2b271; --gold-ink:#8a6a2a; --wine:#7a1f3d; --on-wine:#fff;
   --good:#2f7d55; --warn:#a8691a; --bad:#a43a3a;
   --s-red:#8e2440; --s-white:#c8a640; --s-spark:#6f9fb5; --s-rose:#d98a94; --s-dessert:#b4701f; --s-fort:#5b3a2a;
   --display:'Pretendard Variable',Pretendard,system-ui,-apple-system,'Malgun Gothic',sans-serif;
@@ -22,14 +22,14 @@
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
-    --bg:#121413; --surface:#1c1f1e; --ink:#ecebe6; --muted:#9da19c; --line:#2f3432; --accent:#86c9ad; --on-accent:#0d1a15; --card-a:#232b28; --card-b:#2f3a36; --card-ink:#f3f1ea; --gold:#d3b67c;
+    --bg:#121413; --surface:#1c1f1e; --ink:#ecebe6; --muted:#9da19c; --line:#2f3432; --accent:#86c9ad; --on-accent:#0d1a15; --card-a:#173a2e; --card-b:#255a47; --card-ink:#f5f1e6; --gold:#d8bb80; --gold-ink:#d8bb80; --wine:#9c2c50; --on-wine:#fbeef2;
     --good:#6cc596; --warn:#e0a653; --bad:#e58080;
     --s-red:#c0456a; --s-white:#d9bd5f; --s-spark:#8dbcd0; --s-rose:#e7a3ac; --s-dessert:#d08e3c; --s-fort:#9a6f58;
     color-scheme:dark;
   }
 }
 :root[data-theme="dark"]{
-  --bg:#121413; --surface:#1c1f1e; --ink:#ecebe6; --muted:#9da19c; --line:#2f3432; --accent:#86c9ad; --on-accent:#0d1a15; --card-a:#232b28; --card-b:#2f3a36; --card-ink:#f3f1ea; --gold:#d3b67c;
+  --bg:#121413; --surface:#1c1f1e; --ink:#ecebe6; --muted:#9da19c; --line:#2f3432; --accent:#86c9ad; --on-accent:#0d1a15; --card-a:#173a2e; --card-b:#255a47; --card-ink:#f5f1e6; --gold:#d8bb80; --gold-ink:#d8bb80; --wine:#9c2c50; --on-wine:#fbeef2;
   --good:#6cc596; --warn:#e0a653; --bad:#e58080;
   --s-red:#c0456a; --s-white:#d9bd5f; --s-spark:#8dbcd0; --s-rose:#e7a3ac; --s-dessert:#d08e3c; --s-fort:#9a6f58;
   color-scheme:dark;
@@ -45,7 +45,7 @@ button{cursor:pointer}
 header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:max(14px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) 10px max(16px,env(safe-area-inset-left))}
 h1{font-family:var(--display);font-weight:700;font-size:22px;letter-spacing:-.02em;margin:0}
 .btn{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:10px 14px;font-weight:500;min-height:44px}
-.btn.primary{background:var(--ink);border-color:var(--ink);color:var(--bg);font-weight:600}
+.btn.primary{background:var(--wine);border-color:var(--wine);color:var(--on-wine);font-weight:600}
 .btn.danger{color:var(--bad)}
 .btn:disabled{opacity:.5;cursor:default}
 .btn.small{min-height:36px;padding:6px 10px;font-size:13px}
@@ -88,7 +88,7 @@ main{flex:1;overflow-y:auto;padding:0 16px 20px;min-height:0}
 .log{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;text-align:left;width:100%;display:flex;flex-direction:column;gap:3px}
 .log-top{display:flex;justify-content:space-between;gap:10px;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
 .log-note{font-size:13px;color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.score{font-family:var(--display);font-weight:700;color:var(--accent)}
+.score{font-family:var(--display);font-weight:700;color:var(--gold-ink)}
 
 .tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
 .tile{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
@@ -139,15 +139,16 @@ textarea.csv{width:100%;min-height:180px;font-family:ui-monospace,monospace;font
 svg.i{fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;width:20px;height:20px;flex:none}
 header{padding-bottom:8px}
 .brand{display:flex;align-items:center;gap:8px;min-width:0}
-.brand svg{width:24px;height:24px;color:var(--accent)}
+.brand svg{width:24px;height:24px;color:var(--wine)}
 h1{font-size:19px;font-weight:700;white-space:nowrap;letter-spacing:-.02em}
 .hbtns{display:flex;gap:8px;align-items:center}
 .icon-btn{width:44px;height:44px;border-radius:12px;border:1px solid var(--line);background:var(--surface);display:grid;place-items:center;padding:0}
 .btn{border-radius:12px}
-.summary{background:radial-gradient(110% 130% at 100% 0%,color-mix(in srgb,var(--gold) 26%,transparent) 0%,transparent 55%),linear-gradient(160deg,var(--card-a),var(--card-b));color:var(--card-ink);border-radius:22px;padding:18px 18px 12px;display:flex;flex-direction:column;gap:14px;box-shadow:0 12px 26px -16px rgba(0,0,0,.55)}
+.summary{background:radial-gradient(110% 130% at 100% 0%,color-mix(in srgb,var(--gold) 30%,transparent) 0%,transparent 55%),linear-gradient(160deg,var(--card-a),var(--card-b));color:var(--card-ink);border-radius:22px;padding:18px 18px 12px;display:flex;flex-direction:column;gap:14px;box-shadow:0 12px 26px -16px rgba(0,0,0,.55)}
 .sum-top{display:flex;justify-content:space-between;align-items:flex-end;gap:12px}
 .eyebrow{font-size:12px;letter-spacing:.08em;font-weight:600}
-.summary .eyebrow{color:var(--gold)}
+.summary .eyebrow,.summary .sum-val b{color:var(--gold)}
+.summary{border:1px solid color-mix(in srgb,var(--gold) 28%,transparent)}
 .sum-num{font-size:46px;font-weight:800;letter-spacing:-.03em;line-height:1.05;font-variant-numeric:tabular-nums}
 .sum-num small{font-size:16px;font-weight:600;margin-left:3px;opacity:.85}
 .sum-sub{font-size:13px;opacity:.82}
@@ -160,7 +161,7 @@ h1{font-size:19px;font-weight:700;white-space:nowrap;letter-spacing:-.02em}
 .sum-stats button+button{border-left:1px solid rgba(255,255,255,.14)}
 .quick{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .quick button{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;font-weight:600;min-height:52px;text-align:left}
-.quick svg{color:var(--accent)}
+.quick svg{color:var(--gold-ink)}
 .sec{display:flex;justify-content:space-between;align-items:baseline;margin-top:6px}
 .sec h2{font-size:16px;margin:0;font-weight:700}
 .sec a{font-size:13px;color:var(--accent);text-decoration:none;padding:6px 0}
@@ -170,24 +171,24 @@ h1{font-size:19px;font-weight:700;white-space:nowrap;letter-spacing:-.02em}
 .ph{position:relative;height:150px;display:grid;place-items:center;background:color-mix(in srgb,var(--c) 13%,var(--surface));color:color-mix(in srgb,var(--c) 72%,var(--ink))}
 .ph img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .ph .pv{font-size:30px;font-weight:800;letter-spacing:-.03em}
-.ph .badge{position:absolute;top:8px;right:8px;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:2px 8px;font-size:12px;font-weight:700}
+.ph .badge{position:absolute;top:8px;right:8px;background:var(--surface);color:var(--gold-ink);border:1px solid var(--line);border-radius:999px;padding:2px 8px;font-size:12px;font-weight:700}
 .b-txt{padding:10px 10px 12px;display:flex;flex-direction:column;gap:2px}
 .b-name{font-size:13px;font-weight:600;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
 .b-sub{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .locs{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .locs button{display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;min-height:44px;font-size:14px;text-align:left}
-.locs b{font-variant-numeric:tabular-nums;color:var(--ink)}
+.locs b{font-variant-numeric:tabular-nums;color:var(--gold-ink)}
 .wine{border-radius:16px;gap:12px;padding:10px 0 10px 10px;align-items:center}
 .thumb{position:relative;flex:none;width:52px;height:68px;border-radius:10px;overflow:hidden;display:grid;place-items:center;background:color-mix(in srgb,var(--c) 13%,var(--surface));color:color-mix(in srgb,var(--c) 72%,var(--ink))}
 .thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .thumb svg{width:22px;height:22px}
 .w-main{padding:0}
-.w-vint,.w-vint.nv{width:auto;padding:0;font-size:13px;color:var(--muted);font-weight:700;letter-spacing:0;font-family:inherit}
+.w-vint,.w-vint.nv{width:auto;padding:0;font-size:13px;color:var(--gold-ink);font-weight:700;letter-spacing:0;font-family:inherit}
 .w-qty{padding:0 14px 0 0}
 nav{align-items:stretch}
 nav a{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 2px 10px;font-size:11px}
 nav a svg{width:22px;height:22px}
-#cam-btn{flex:none;width:58px;height:58px;margin:-14px 6px 0;border-radius:50%;border:4px solid var(--bg);background:var(--ink);color:var(--bg);display:grid;place-items:center;padding:0;box-shadow:0 6px 14px -6px rgba(0,0,0,.45)}
+#cam-btn{flex:none;width:58px;height:58px;margin:-14px 6px 0;border-radius:50%;border:4px solid var(--bg);background:var(--wine);color:var(--on-wine);display:grid;place-items:center;padding:0;box-shadow:0 6px 14px -6px rgba(0,0,0,.45)}
 #cam-btn svg{width:26px;height:26px}
 .detail-ph{height:200px;border-radius:14px;overflow:hidden;background:var(--line)}
 .detail-ph img{width:100%;height:100%;object-fit:cover;display:block}

@@ -161,18 +161,19 @@ h1{font-size:19px;font-weight:700;white-space:nowrap;letter-spacing:-.02em}
 .hbtns{display:flex;gap:8px;align-items:center}
 .icon-btn{width:44px;height:44px;border-radius:12px;border:1px solid var(--line);background:var(--surface);display:grid;place-items:center;padding:0}
 .btn{border-radius:12px}
-.summary{background:radial-gradient(110% 130% at 100% 0%,color-mix(in srgb,var(--gold) 30%,transparent) 0%,transparent 55%),linear-gradient(160deg,var(--card-a),var(--card-b));color:var(--card-ink);border-radius:18px;padding:14px 16px 6px;display:flex;flex-direction:column;gap:10px;box-shadow:0 12px 26px -16px rgba(0,0,0,.55)}
-.sum-top{display:flex;justify-content:space-between;align-items:flex-end;gap:12px}
+.summary{background:radial-gradient(110% 130% at 100% 0%,color-mix(in srgb,var(--gold) 30%,transparent) 0%,transparent 55%),linear-gradient(160deg,var(--card-a),var(--card-b));color:var(--card-ink);border-radius:18px;padding:10px 16px 4px;display:flex;flex-direction:column;gap:6px;box-shadow:0 12px 26px -16px rgba(0,0,0,.55)}
+.sum-top{display:flex;justify-content:space-between;align-items:center;gap:12px;background:none;border:0;color:inherit;padding:0;width:100%;text-align:left;min-height:44px}
+.sum-left{display:flex;align-items:baseline;gap:8px;min-width:0}
 .eyebrow{font-size:12px;letter-spacing:.08em;font-weight:600}
 .summary .eyebrow,.summary .sum-val b{color:var(--gold)}
 .summary{border:1px solid color-mix(in srgb,var(--gold) 28%,transparent)}
-.sum-num{font-size:32px;font-weight:800;letter-spacing:-.03em;line-height:1.05;font-variant-numeric:tabular-nums}
+.sum-num{font-size:28px;font-weight:800;letter-spacing:-.03em;line-height:1.05;font-variant-numeric:tabular-nums}
 .sum-num small{font-size:14px;font-weight:600;margin-left:3px;opacity:.85}
 .sum-sub{font-size:13px;opacity:.82}
-.sum-val{text-align:right;font-size:12px;opacity:.92;white-space:nowrap}
-.sum-val b{display:block;font-size:16px;font-variant-numeric:tabular-nums}
-.sum-stats{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid rgba(255,255,255,.18);padding-top:4px}
-.sum-stats button{background:none;border:0;color:inherit;padding:2px 0;display:flex;flex-direction:column;align-items:center;gap:0;min-height:44px;justify-content:center}
+.sum-val{text-align:right;font-size:12px;opacity:.92;white-space:nowrap;display:flex;flex-direction:column;gap:1px}
+.sum-val b{font-size:15px;font-variant-numeric:tabular-nums}
+.sum-stats{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid rgba(255,255,255,.18);padding-top:4px}
+.sum-stats button{background:none;border:0;color:inherit;padding:2px 0;display:flex;flex-direction:row;align-items:baseline;gap:6px;min-height:40px;justify-content:center}
 .sum-stats b{font-size:16px;font-variant-numeric:tabular-nums}
 .sum-stats span{font-size:11px;opacity:.8}
 .sum-stats button+button{border-left:1px solid rgba(255,255,255,.14)}
@@ -497,10 +498,10 @@ function renderHome(){
   const recent=[...wines].sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)).slice(0,10);
   const locs=locList().map(l=>[l,stock.filter(w=>w.location===l).reduce((a,w)=>a+w.qty,0)]);
   el.innerHTML=`<section class="summary">
-      <div class="sum-top"><div><div class="eyebrow">컬렉션</div><div class="sum-num">${bottles}<small>병</small></div><div class="sum-sub">${stock.length}종${cost?' · 구매 '+won(cost):''}</div></div>
-        ${withM.length?`<div class="sum-val">추정 시세<b>${won(mval)}</b></div>`:''}</div>
+      <button type="button" class="sum-top" data-home="stock" aria-label="셀러 전체 보기">
+        <span class="sum-left"><span class="eyebrow">컬렉션</span><span class="sum-num">${bottles}<small>병</small></span><span class="sum-sub">${stock.length}종</span></span>
+        <span class="sum-val">${cost?`<span>구매 ${won(cost)}</span>`:''}${withM.length?`<span>시세 <b>${won(mval)}</b></span>`:''}</span></button>
       <div class="sum-stats">
-        <button type="button" data-home="stock"><b>${bottles}</b><span>보유</span></button>
         <button type="button" data-home="drunk"><b>${drinks.length}</b><span>마심</span></button>
         <button type="button" data-home="now"><b>${ready.length}</b><span>마실 때</span></button>
         <button type="button" data-home="wait"><b>${wait.length}</b><span>숙성 중</span></button>

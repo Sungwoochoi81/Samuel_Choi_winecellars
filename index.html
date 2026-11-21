@@ -193,7 +193,8 @@ nav a[aria-current=page]{color:var(--accent);border-top-color:var(--accent);font
 /* 등록·저장 버튼은 화면 아래에 따로 띠로 두어 스크롤과 상관없이 항상 보이게 한다 */
 .savebar{grid-column:1/-1;position:sticky;bottom:0;z-index:3;margin:4px -16px 0;padding:10px 16px calc(12px + env(safe-area-inset-bottom));background:var(--surface);border-top:1px solid var(--line);box-shadow:0 -8px 14px -12px rgba(0,0,0,.4)}
 .savebar{display:flex;gap:8px}
-.savebar .btn{flex:2 1 0;min-width:0;width:auto}
+.savebar .btn{flex:1.45 1 0;min-width:0;width:auto;padding-left:4px;padding-right:4px;white-space:nowrap}
+.savebar .next{flex:1 1 0;font-size:13px;font-weight:600;border-color:var(--wine);color:var(--wine);background:var(--surface)}
 .savebar .more-cam{flex:1 1 0;display:flex;align-items:center;justify-content:center;gap:5px;padding:10px 4px;font-size:13px;white-space:nowrap;background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:600}
 .savebar .more-cam svg{width:17px;height:17px;flex:none}
 .sheet-body:has(.savebar){padding-bottom:0}
@@ -523,7 +524,7 @@ const thumbs={};let imgStore=null;
 const photoKeys=id=>[id,id+'~2',id+'~3',id+'~4'];
 const photosOf=id=>photoKeys(id).filter(k=>thumbs[k]);
 let formPhotos=[],photosDirty=false; /* 등록·수정 화면에서 다루는 사진 목록 */
-function photosUI(){const el=$('#f-photos');if(!el)return;el.innerHTML=formPhotos.map((d,i)=>`<span class="ph1"><img src="${d}" alt="사진 ${i+1}"><button type="button" data-act="ph-del" data-i="${i}" aria-label="사진 ${i+1} 지우기">×</button></span>`).join('');el.hidden=!formPhotos.length;const mc=$('#more-cam');if(mc)mc.hidden=!formPhotos.length||formPhotos.length>=4} /* 사진을 한 장 찍은 뒤에는 손이 닿는 아래쪽에 추가 촬영 버튼 */
+function photosUI(){const el=$('#f-photos');if(!el)return;el.innerHTML=formPhotos.map((d,i)=>`<span class="ph1"><img src="${d}" alt="사진 ${i+1}"><button type="button" data-act="ph-del" data-i="${i}" aria-label="사진 ${i+1} 지우기">×</button></span>`).join('');el.hidden=!formPhotos.length;const mc=$('#more-cam');if(mc)mc.hidden=!formPhotos.length||formPhotos.length>=4;const nx=$('#save-next');if(nx)nx.hidden=!formPhotos.length} /* 사진을 한 장 찍은 뒤에는 손이 닿는 아래쪽에 추가 촬영 버튼 */
 function savePhotos(id){const ks=photoKeys(id);ks.forEach((k,i)=>{if(formPhotos[i]){if(thumbs[k]!==formPhotos[i])imgPut(k,formPhotos[i])}else if(thumbs[k])imgDel(k)});formPhotos=[];photosDirty=false}
 function delPhotos(id){for(const k of photoKeys(id))if(thumbs[k])imgDel(k)}
 function imgTx(mode){return imgStore.transaction('t',mode).objectStore('t')}
@@ -1022,7 +1023,7 @@ function openForm(id,mode){
       <datalist id="dl-country">${ranked(COUNTRIES,w=>w.country).map(c=>`<option value="${esc(c)}">`).join('')}</datalist>
       <datalist id="dl-class">${ranked(CLASSES,w=>w.classification).map(c=>`<option value="${esc(c)}">`).join('')}</datalist>
       ${edit||pre?'':`<p class="hint full" style="grid-column:1/-1">${getCfg().key?'등록하면 AI가 와인 해설과 추정 시세를 자동으로 붙입니다.':'설정에 API 키를 넣어 두면 등록한 와인에 AI 해설과 추정 시세가 자동으로 붙습니다.'}</p>`}
-      <div class="savebar"><button type="submit" class="btn primary" id="save-wine">${mode==='incoming'?(id?'저장':'입고예정에 등록'):mode==='draft'?'적용':edit?'저장':'Cellars에 등록'}</button>${edit||pre?'':`<button type="button" class="btn more-cam" id="more-cam" data-act="shoot" hidden><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.5"/></svg>라벨 추가 촬영</button>`}</div>
+      <div class="savebar"><button type="submit" class="btn primary" id="save-wine">${mode==='incoming'?(id?'저장':'입고예정에 등록'):mode==='draft'?'적용':edit?'저장':'Cellars에 등록'}</button>${edit||pre?'':`<button type="submit" class="btn next" id="save-next" hidden aria-label="등록하고 다음 와인 촬영">추가 등록</button><button type="button" class="btn more-cam" id="more-cam" data-act="shoot" hidden><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.5"/></svg>추가 촬영</button>`}</div>
     </form>`);
   photosUI();
   fxUI();
@@ -1129,7 +1130,7 @@ async function saveWine(form){
   if(isNew){w.aiPending=true;w.aiTries=0;w.aiErr=''} /* 새로 등록한 와인만 AI 해설을 자동으로 받는다 */
   /* 같은 와인·빈티지·용량이 이미 있으면 수량을 더할지 따로 등록할지 먼저 묻는다 */
   if(isNew&&!form.dataset.dup){const ex=sameWine(w);if(ex){askDup(ex,w);return}}
-  const tb=$('#save-top');const btn={set disabled(v){$('#save-wine').disabled=v;if(tb)tb.disabled=v}};btn.disabled=true;
+  const tb=$('#save-top'),nb=$('#save-next');const btn={set disabled(v){$('#save-wine').disabled=v;if(tb)tb.disabled=v;if(nb)nb.disabled=v}};btn.disabled=true;
   const wid=isNew?newId():id;
   if(mode==='arrive'&&src){ /* 일부만 도착했으면 남은 병은 입고예정에 그대로 둔다 */
     const rest=Math.max(0,src.qty||0)-w.qty;
@@ -1143,6 +1144,7 @@ async function saveWine(form){
     try{await put('wines',merge.id,upd)}catch(e){btn.disabled=false;toast('저장하지 못했습니다. 다시 시도해 주세요.');return}
     if(formPhotos.length&&!thumbs[merge.id]){savePhotos(merge.id);render()}formPhotos=[];
     const now=!!(document.querySelector('[name=f-now]:checked')||{}).value;
+    if(form.dataset.next==='cam'&&!now){closeSheet();toast(`기존 항목에 ${w.qty}병을 더했습니다. 다음 와인을 촬영하세요.`);$('#cam-direct').click();return}
     sheetStack.length=0;justAdded=now?null:merge.id;
     if(now)openDrink(merge.id);else openWine(merge.id);
     toast(`기존 항목에 ${w.qty}병을 더했습니다. 이제 ${upd.qty}병입니다.`);
@@ -1153,6 +1155,9 @@ async function saveWine(form){
   if(!isNew){sheetStack.pop();openWine(wid)}
   else{
     const now=!!(document.querySelector('[name=f-now]:checked')||{}).value;
+    if(form.dataset.next==='cam'&&!now){ /* 추가 등록: 저장하고 곧바로 다음 와인 촬영으로 */
+      closeSheet();toast('Cellars에 등록했습니다. 다음 와인을 촬영하세요.');queueAi(wid);$('#cam-direct').click();return;
+    }
     sheetStack.length=0;
     justAdded=now?null:wid;
     if(now)openDrink(wid);else openWine(wid); /* 등록하면 바로 상세 화면으로: AI 해설과 시세가 준비되는 대로 여기에 나타난다 */
@@ -1726,7 +1731,7 @@ $('#sheet').addEventListener('click',async e=>{
   else if(a==='copy-csv'){const t=$('#csv-out');try{await navigator.clipboard.writeText(t.value);toast('복사했습니다.')}catch(_){t.focus();t.select();toast('전체 선택했습니다. 길게 눌러 복사해 주세요.')}}
 });
 $('#sheet').addEventListener('change',async e=>{if(e.target.id==='d-cam'||e.target.id==='d-file'){const f=e.target.files&&e.target.files[0];e.target.value='';if(!f)return;try{const t=await makeThumb(f);pendingDrinkThumb=t;const im=$('#d-thumb');if(im){im.src=t;im.hidden=false;$('#d-photo-note').textContent='저장을 누르면 사진이 함께 기록됩니다.'}}catch(_){if($('#d-photo-note'))$('#d-photo-note').textContent='사진을 읽을 수 없습니다. 다른 사진으로 시도해 주세요.'}return}if(e.target.id==='direct-file'){const fs=[...(e.target.files||[])];e.target.value='';attachFiles(inFiles,fs,'#direct-status').then(()=>filesUI(inFiles,'#direct-files','direct-unfile'));return}if(e.target.id==='askall-file'){const fs=[...(e.target.files||[])];e.target.value='';askAttach(fs);return}if(e.target.id==='f-cam'||e.target.id==='f-file'){const fs=[...(e.target.files||[])];e.target.value='';onPhotos(fs)}});
-$('#sheet').addEventListener('submit',e=>{e.preventDefault();if(e.target.id==='wine-form')saveWine(e.target);else if(e.target.id==='ask-form')askAi(e.target);else if(e.target.id==='askall-form')askAllAi();else if(e.target.id==='drink-form')saveDrink(e.target);else if(e.target.id==='move-form')saveMove(e.target)});
+$('#sheet').addEventListener('submit',e=>{e.preventDefault();if(e.target.id==='wine-form'){e.target.dataset.next=e.submitter&&e.submitter.id==='save-next'?'cam':'';saveWine(e.target)}else if(e.target.id==='ask-form')askAi(e.target);else if(e.target.id==='askall-form')askAllAi();else if(e.target.id==='drink-form')saveDrink(e.target);else if(e.target.id==='move-form')saveMove(e.target)});
 render();
 imgInit();
 /* 예전 방식 시세 정리: 한국 수입 마진을 얹어 추정했던 원화 값을 버리고, 받아 둔 해외 평균가에 실제 환율만 곱한 값으로 바꾼다 */

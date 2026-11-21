@@ -288,7 +288,7 @@ const fxUnit=c=>CUNIT[c]||1;
 const amt=n=>Number(n).toLocaleString('ko-KR',{maximumFractionDigits:2});
 const styleRank=()=>ranked(STYLES.map(x=>x[0]),w=>w.style);
 const locList=()=>ranked(LOCS,w=>w.location);
-const locText=w=>[w.location,w.slot].filter(Boolean).join(' ');
+const locText=w=>w.location||'';
 
 /* ---------- storage: this phone only ---------- */
 const KEY='cellar.v1',CKEY='cellar.cfg',DEF={key:'',model:'claude-sonnet-5-5',web:true};
@@ -454,7 +454,7 @@ function renderCellar(){
     if(F.country&&w.country!==F.country)return false;
     if(F.loc&&w.location!==F.loc)return false;
     if(F.state){const st=winState(w);if(!st||st[1]!==F.state||!((w.qty||0)>0))return false}
-    if(q){const hay=[w.name,w.producer,w.vintage,w.country,w.region,w.appellation,w.grape,w.classification,w.tags,w.store,w.location,w.slot].join(' ').toLowerCase();if(!hay.includes(q))return false}
+    if(q){const hay=[w.name,w.producer,w.vintage,w.country,w.region,w.appellation,w.grape,w.classification,w.store,w.location].join(' ').toLowerCase();if(!hay.includes(q))return false}
     return true;
   });
   const big=1e15;
@@ -586,8 +586,6 @@ function openForm(id){
       ${fld('f-store','구매처 / 사이트',w.store)}
       <div class="field"><label for="f-location">보관 위치</label><select id="f-location"><option value="">미지정</option>${locList().map(l=>`<option${w.location===l?' selected':''}>${esc(l)}</option>`).join('')}<option value="__new">새 위치 추가…</option></select></div>
       <div class="field full" id="newloc-wrap" hidden><label for="f-newloc">새 보관 위치 이름</label><input id="f-newloc" autocomplete="off"></div>
-      ${fld('f-slot','칸 / 단',w.slot,'placeholder="예: 2단 왼쪽"')}
-      ${fld('f-tags','태그',w.tags,'placeholder="예: 기념일용"')}
       ${fld('f-from','시음 적기 시작 (연도)',w.drinkFrom,'inputmode="numeric"')}
       ${fld('f-to','시음 적기 끝 (연도)',w.drinkTo,'inputmode="numeric"')}
       <div class="field full"><label for="f-memo">메모</label><textarea id="f-memo">${esc(w.memo||'')}</textarea></div>
@@ -666,7 +664,7 @@ async function saveWine(form){
   }
   const w={...old,producer:v('f-producer'),name:v('f-name'),vintage:num(v('f-vintage')),style:v('f-style'),country:v('f-country'),region:v('f-region'),
     appellation:v('f-appellation'),classification:v('f-class'),grape:v('f-grape'),size:num(v('f-size'))||750,qty:Math.max(0,Math.round(num(v('f-qty'))??1)),
-    price,priceOrig:orig,currency:orig!=null?cur:'',fxRate,fxDate,purchaseDate:v('f-pdate'),store:v('f-store'),location:v('f-location')==='__new'?v('f-newloc'):v('f-location'),slot:v('f-slot'),tags:v('f-tags'),
+    price,priceOrig:orig,currency:orig!=null?cur:'',fxRate,fxDate,purchaseDate:v('f-pdate'),store:v('f-store'),location:v('f-location')==='__new'?v('f-newloc'):v('f-location'),
     drinkFrom:num(v('f-from')),drinkTo:num(v('f-to')),memo:$('#f-memo').value.trim(),createdAt:old.createdAt||Date.now()};
   if(!id){w.aiPending=true;w.aiTries=0;w.aiErr=''} /* 새로 등록한 와인만 AI 해설을 자동으로 받는다 */
   const btn=$('#save-wine');btn.disabled=true;
@@ -777,7 +775,7 @@ function openWine(id,over){
     ${w.sources&&w.sources.length?`<div class="hint">출처·검색 결과<br>${w.sources.map(x=>/^https?:\/\//.test(x.url)?`<a class="ext" style="font-size:12px" href="${esc(x.url)}" target="_blank" rel="noopener">${esc(String(x.title).slice(0,60))} ↗</a>`:'').join('<br>')}</div>`:''}
     <dl class="kv">
       ${kv('산지',[w.country,w.region].filter(Boolean).join(' · '))}${kv('마을 / 밭',w.appellation)}${kv('등급',w.classification)}${kv('품종',w.grape)}
-      ${kv('용량',w.size?w.size+'ml':'')}${kv('시음 적기',win)}${kv('보관 위치',locText(w))}${kv('태그',w.tags)}
+      ${kv('용량',w.size?w.size+'ml':'')}${kv('시음 적기',win)}${kv('보관 위치',locText(w))}
       ${w.price||w.price===0?`<dt>구매가</dt><dd>${esc(priceText(w))}${w.fxRate?`<br><span class="hint">환율 ${amt(w.fxRate*fxUnit(w.currency))}원 / ${fxUnit(w.currency)} ${esc(w.currency)} · ${esc(w.fxDate||'')}</span>`:''}</dd>`:''}${kv('구매처',w.store)}${kv('구매일',w.purchaseDate)}
       ${w.marketKRW||w.marketUSD?`<dt>추정 시세</dt><dd>${w.marketKRW?won(w.marketKRW):''}${w.marketUSD?` (해외 약 $${Math.round(w.marketUSD).toLocaleString()})`:''}${diff!==null?` · 구매가 대비 ${diff>=0?'+':''}${diff}%`:''}<br><span class="hint">${w.aboutWeb?'웹 검색 기반':'AI 추정'} · 신뢰도 ${esc(w.marketConf||'–')} · ${esc(w.marketAt||'')}${w.marketNote?' · '+esc(w.marketNote):''}</span></dd>`:''}
       ${kv('메모',w.memo)}${logs?kv('마신 기록',logs+'회'):''}
@@ -827,7 +825,7 @@ function openPicker(mode){
 function renderPick(){
   const q=($('#pick-q').value||'').trim().toLowerCase();
   const rank=w=>{const st=winState(w);return st&&st[1]==='now'?0:1};
-  const rows=wines.filter(w=>(w.qty||0)>0&&(!q||[w.name,w.producer,w.vintage,w.region,w.location,w.slot].join(' ').toLowerCase().includes(q)))
+  const rows=wines.filter(w=>(w.qty||0)>0&&(!q||[w.name,w.producer,w.vintage,w.region,w.location].join(' ').toLowerCase().includes(q)))
     .sort((a,b)=>rank(a)-rank(b)||(b.createdAt||0)-(a.createdAt||0));
   $('#pick-list').innerHTML=rows.length?rows.slice(0,40).map(w=>`<button type="button" class="pick" data-act="pickwine" data-id="${esc(w.id)}"><span>${w.vintage?esc(w.vintage)+' ':''}${esc(title(w))}</span><small>${esc(locText(w)||'위치 미지정')} · ${w.qty}병</small></button>`).join('')+(rows.length>40?'<p class="hint">검색어를 넣으면 더 좁혀 볼 수 있습니다.</p>':'')
     :'<div class="blank">고를 수 있는 와인이 없습니다.</div>';
@@ -837,7 +835,6 @@ function openMove(id){
   sheet('위치 옮기기',`<p style="margin:0">${w.vintage?esc(w.vintage)+' ':''}${esc(title(w))}</p>
     <form id="move-form" class="grid" data-id="${esc(id)}">
       <div class="field"><label for="m-location">보관 위치</label><select id="m-location"><option value="">미지정</option>${locList().map(l=>`<option${w.location===l?' selected':''}>${esc(l)}</option>`).join('')}<option value="__new">새 위치 추가…</option></select></div>
-      ${fld('m-slot','칸 / 단',w.slot,'placeholder="예: 2단 왼쪽"')}
       <div class="field full" id="m-newloc-wrap" hidden><label for="m-newloc">새 보관 위치 이름</label><input id="m-newloc" autocomplete="off"></div>
       <div class="field full"><button type="submit" class="btn primary" id="save-move">옮기기</button></div>
     </form>`);
@@ -845,11 +842,11 @@ function openMove(id){
 async function saveMove(form){
   const w=wines.find(x=>x.id===form.dataset.id);if(!w)return closeSheet();
   const loc=$('#m-location').value==='__new'?$('#m-newloc').value.trim():$('#m-location').value;
-  await put('wines',w.id,{...w,location:loc,slot:$('#m-slot').value.trim()});
+  await put('wines',w.id,{...w,location:loc});
   closeSheet();toast(loc?`${loc}(으)로 옮겼습니다.`:'보관 위치를 비웠습니다.');
 }
 function csv(){
-  const cols=[['producer','생산자'],['name','와인명'],['vintage','빈티지'],['style','스타일'],['country','국가'],['region','지역'],['appellation','마을/밭'],['classification','등급'],['grape','품종'],['size','용량'],['qty','수량'],['price','구매가(원)'],['currency','구매통화'],['priceOrig','구매가(원통화)'],['fxRate','환율'],['fxDate','환율기준일'],['purchaseDate','구매일'],['store','구매처'],['location','보관위치'],['slot','칸'],['drinkFrom','적기시작'],['drinkTo','적기끝'],['marketKRW','추정시세'],['tags','태그'],['memo','메모']];
+  const cols=[['producer','생산자'],['name','와인명'],['vintage','빈티지'],['style','스타일'],['country','국가'],['region','지역'],['appellation','마을/밭'],['classification','등급'],['grape','품종'],['size','용량'],['qty','수량'],['price','구매가(원)'],['currency','구매통화'],['priceOrig','구매가(원통화)'],['fxRate','환율'],['fxDate','환율기준일'],['purchaseDate','구매일'],['store','구매처'],['location','보관위치'],['drinkFrom','적기시작'],['drinkTo','적기끝'],['marketKRW','추정시세'],['memo','메모']];
   const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
   return[cols.map(c=>q(c[1])).join(','),...wines.map(w=>cols.map(c=>q(w[c[0]])).join(','))].join('\n');
 }

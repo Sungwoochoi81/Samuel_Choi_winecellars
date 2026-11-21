@@ -61,6 +61,8 @@ main{flex:1;overflow-y:auto;padding:0 16px 20px;min-height:0}
 .chip{flex:none;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-size:13px;min-height:36px;display:flex;align-items:center;gap:6px}
 .chip[aria-pressed=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 .dot{width:8px;height:8px;border-radius:50%;flex:none}
+.row4{display:grid;grid-template-columns:1fr 1fr 1fr 1.35fr;gap:6px}
+.row4 select{min-width:0;width:100%;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:8px 2px 8px 8px;font-size:13px;min-height:40px;text-overflow:ellipsis}
 .row2{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .row2 select{flex:1 1 30%;min-width:104px;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:8px 10px;font-size:14px;min-height:40px}
 .ask{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:10px 12px;margin:0;gap:2px}
@@ -82,7 +84,7 @@ main{flex:1;overflow-y:auto;padding:0 16px 20px;min-height:0}
 .w-qty{flex:none;padding:12px 14px 12px 0;text-align:right;font-family:var(--display);font-weight:700;font-size:20px;font-variant-numeric:tabular-nums}
 .w-qty small{font-family:var(--body);font-weight:400;font-size:11px;color:var(--muted);display:block}
 .wine.empty{opacity:.55}
-.pill{border-radius:999px;padding:2px 8px;font-size:11px;font-weight:600;border:1px solid currentColor}
+.pill{border-radius:999px;padding:2px 8px;font-size:11px;font-weight:600;border:1px solid currentColor;white-space:nowrap;flex:none}
 .pill.ai{color:var(--accent)} .pill.now{color:var(--good)} .pill.wait{color:var(--warn)} .pill.late{color:var(--bad)}
 .price{color:var(--muted);font-variant-numeric:tabular-nums}
 
@@ -153,19 +155,19 @@ h1{font-size:19px;font-weight:700;white-space:nowrap;letter-spacing:-.02em}
 .hbtns{display:flex;gap:8px;align-items:center}
 .icon-btn{width:44px;height:44px;border-radius:12px;border:1px solid var(--line);background:var(--surface);display:grid;place-items:center;padding:0}
 .btn{border-radius:12px}
-.summary{background:radial-gradient(110% 130% at 100% 0%,color-mix(in srgb,var(--gold) 30%,transparent) 0%,transparent 55%),linear-gradient(160deg,var(--card-a),var(--card-b));color:var(--card-ink);border-radius:22px;padding:18px 18px 12px;display:flex;flex-direction:column;gap:14px;box-shadow:0 12px 26px -16px rgba(0,0,0,.55)}
+.summary{background:radial-gradient(110% 130% at 100% 0%,color-mix(in srgb,var(--gold) 30%,transparent) 0%,transparent 55%),linear-gradient(160deg,var(--card-a),var(--card-b));color:var(--card-ink);border-radius:18px;padding:14px 16px 6px;display:flex;flex-direction:column;gap:10px;box-shadow:0 12px 26px -16px rgba(0,0,0,.55)}
 .sum-top{display:flex;justify-content:space-between;align-items:flex-end;gap:12px}
 .eyebrow{font-size:12px;letter-spacing:.08em;font-weight:600}
 .summary .eyebrow,.summary .sum-val b{color:var(--gold)}
 .summary{border:1px solid color-mix(in srgb,var(--gold) 28%,transparent)}
-.sum-num{font-size:46px;font-weight:800;letter-spacing:-.03em;line-height:1.05;font-variant-numeric:tabular-nums}
-.sum-num small{font-size:16px;font-weight:600;margin-left:3px;opacity:.85}
+.sum-num{font-size:32px;font-weight:800;letter-spacing:-.03em;line-height:1.05;font-variant-numeric:tabular-nums}
+.sum-num small{font-size:14px;font-weight:600;margin-left:3px;opacity:.85}
 .sum-sub{font-size:13px;opacity:.82}
 .sum-val{text-align:right;font-size:12px;opacity:.92;white-space:nowrap}
-.sum-val b{display:block;font-size:17px;font-variant-numeric:tabular-nums}
-.sum-stats{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid rgba(255,255,255,.18);padding-top:8px}
-.sum-stats button{background:none;border:0;color:inherit;padding:4px 0;display:flex;flex-direction:column;align-items:center;gap:1px;min-height:48px;justify-content:center}
-.sum-stats b{font-size:18px;font-variant-numeric:tabular-nums}
+.sum-val b{display:block;font-size:16px;font-variant-numeric:tabular-nums}
+.sum-stats{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid rgba(255,255,255,.18);padding-top:4px}
+.sum-stats button{background:none;border:0;color:inherit;padding:2px 0;display:flex;flex-direction:column;align-items:center;gap:0;min-height:44px;justify-content:center}
+.sum-stats b{font-size:16px;font-variant-numeric:tabular-nums}
 .sum-stats span{font-size:11px;opacity:.8}
 .sum-stats button+button{border-left:1px solid rgba(255,255,255,.14)}
 .quick{display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -225,18 +227,21 @@ nav a svg{width:22px;height:22px}
     <div class="tools">
       <input type="search" id="q" placeholder="와인명, 생산자, 산지, 품종 검색" autocomplete="off">
       <div class="chips" id="style-chips"></div>
-      <div class="row2">
+      <div class="row4">
         <select id="country" aria-label="국가"></select>
+        <select id="grape" aria-label="품종"></select>
         <select id="loc" aria-label="보관 위치"></select>
         <select id="sort" aria-label="정렬">
           <option value="recent">최근 등록순</option>
           <option value="vintage">빈티지 오래된 순</option>
           <option value="price">구매가 높은 순</option>
+          <option value="mktdesc">현재 시세 높은 순</option>
+          <option value="mktasc">현재 시세 낮은 순</option>
           <option value="name">이름순</option>
           <option value="window">시음 적기 빠른 순</option>
         </select>
-        <label class="check"><input type="checkbox" id="show-empty"> 다 마신 와인 포함</label>
       </div>
+      <div class="row2"><label class="check"><input type="checkbox" id="show-empty"> 다 마신 와인 포함</label></div>
       <div class="statebar" id="statebar" hidden><span id="state-text"></span><button type="button" class="btn small" id="state-clear">전체 보기</button></div>
       <div class="count" id="count"></div>
     </div>
@@ -270,8 +275,10 @@ const title=w=>[w.producer,w.name].filter(Boolean).join(' ')||'이름 없는 와
 
 let loaded=true;
 let wines=[],drinks=[];
-const F={q:'',style:'',country:'',loc:'',state:'',sort:'recent',empty:false};
-const LOCS=['삼성셀러','매직쉐프셀러','거실옷장','삼각창고','외부창고','기타 장소'];
+const F={q:'',style:'',country:'',grape:'',loc:'',state:'',sort:'recent',empty:false};
+const LOCS=['삼성셀러','매직쉐프셀러','거실옷장','삼각창고','기타 장소'];
+/* 외부창고는 기타 장소로 합쳤다: 예전에 저장된 값도 옮긴다 */
+function mergeLocs(){let n=0;for(const w of wines)if(w&&w.location==='외부창고'){w.location='기타 장소';n++}return n}
 const CURS=['KRW','EUR','USD','JPY'],CUNIT={JPY:100},CSYM={KRW:'₩',EUR:'€',USD:'$',JPY:'¥'};
 const COUNTRIES=['프랑스','이탈리아','스페인','미국','독일','포르투갈','호주','뉴질랜드','칠레','아르헨티나','남아공','오스트리아'];
 const CLASSES=['Grand Cru','1er Cru','Village','Régionale','DOCG','DOC','Grand Cru Classé','Reserva','Gran Reserva'];
@@ -301,6 +308,7 @@ function getCfg(){try{return Object.assign({},DEF,JSON.parse(localStorage.getIte
 function setCfg(c){try{localStorage.setItem(CKEY,JSON.stringify(c))}catch(_){}}
 function persist(){try{localStorage.setItem(KEY,JSON.stringify({wines,drinks}));return true}catch(_){toast('폰 저장 공간에 쓰지 못했습니다. 설정에서 백업을 받아 두세요.');return false}}
 try{const d=JSON.parse(localStorage.getItem(KEY)||'{}');wines=Array.isArray(d.wines)?d.wines:[];drinks=Array.isArray(d.drinks)?d.drinks:[]}catch(_){}
+if(mergeLocs())persist();
 if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{});
 function newId(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
 async function put(col,id,data){const arr=col==='wines'?wines:drinks;const row={...data,id};const i=arr.findIndex(x=>x.id===id);if(i>=0)arr[i]=row;else arr.push(row);persist();render()}
@@ -446,9 +454,11 @@ function renderCellar(){
   renderChips();
   const cs=ranked([],w=>w.country);
   if(F.country&&!cs.includes(F.country))F.country='';
-  $('#country').innerHTML='<option value="">국가 전체</option>'+cs.map(c=>`<option${c===F.country?' selected':''}>${esc(c)}</option>`).join('');
+  $('#country').innerHTML='<option value="">국가</option>'+cs.map(c=>`<option${c===F.country?' selected':''}>${esc(c)}</option>`).join('');
   const ls=locList();if(F.loc&&!ls.includes(F.loc))F.loc='';
-  $('#loc').innerHTML='<option value="">위치 전체</option>'+ls.map(c=>`<option${c===F.loc?' selected':''}>${esc(c)}</option>`).join('');
+  const gs=ranked([],grapesOf);if(F.grape&&!gs.includes(F.grape))F.grape='';
+  $('#grape').innerHTML='<option value="">품종</option>'+gs.map(c=>`<option${c===F.grape?' selected':''}>${esc(c)}</option>`).join('');
+  $('#loc').innerHTML='<option value="">위치</option>'+ls.map(c=>`<option${c===F.loc?' selected':''}>${esc(c)}</option>`).join('');
   $('#statebar').hidden=!F.state;$('#state-text').textContent=F.state==='now'?'지금 마실 때인 와인만 보는 중':F.state==='wait'?'숙성 중인 와인만 보는 중':'';
   const list=$('#list');
   if(!loaded){return}
@@ -457,6 +467,7 @@ function renderCellar(){
     if(!F.empty&&!((w.qty||0)>0))return false;
     if(F.style&&w.style!==F.style)return false;
     if(F.country&&w.country!==F.country)return false;
+    if(F.grape&&!grapesOf(w).includes(F.grape))return false;
     if(F.loc&&w.location!==F.loc)return false;
     if(F.state){const st=winState(w);if(!st||st[1]!==F.state||!((w.qty||0)>0))return false}
     if(q){const hay=[w.name,w.producer,w.vintage,w.country,w.region,w.appellation,w.grape,w.classification,w.store,w.location].join(' ').toLowerCase();if(!hay.includes(q))return false}
@@ -467,6 +478,8 @@ function renderCellar(){
     recent:(a,b)=>(b.createdAt||0)-(a.createdAt||0),
     vintage:(a,b)=>(a.vintage||big)-(b.vintage||big),
     price:(a,b)=>(b.price||0)-(a.price||0),
+    mktdesc:(a,b)=>(b.marketKRW||-1)-(a.marketKRW||-1),
+    mktasc:(a,b)=>(a.marketKRW||big)-(b.marketKRW||big),
     name:(a,b)=>title(a).localeCompare(title(b)),
     window:(a,b)=>(a.drinkFrom||a.drinkTo||big)-(b.drinkFrom||b.drinkTo||big)
   };
@@ -519,7 +532,7 @@ function renderStats(){
     <div class="tile"><b>${won(cost)||'0원'}</b><span>보유분 구매 총액</span></div>
     <div class="tile"><b>${withM.length?won(mval):'–'}</b><span>추정 시세 합계 (${withM.length}종 기준)</span></div>
   </div>
-  ${ready.length?`<div class="panel"><h2>지금 마시기 좋은 와인</h2><div class="list">${ready.slice(0,8).map(w=>{const s=winState(w);return`<button type="button" class="chip" style="width:100%;border-radius:10px;justify-content:space-between" data-wine="${esc(w.id)}"><span>${w.vintage?esc(w.vintage)+' ':''}${esc(title(w))}</span><span class="pill ${s[1]}">${s[0]}</span></button>`}).join('')}</div></div>`:''}
+  ${ready.length?`<div class="panel"><h2>지금 마시기 좋은 와인</h2><div class="list">${ready.slice(0,8).map(w=>{const s=winState(w);return`<button type="button" class="chip" style="width:100%;border-radius:10px;justify-content:space-between;gap:10px;padding:10px 12px" data-wine="${esc(w.id)}"><span style="flex:1;min-width:0;text-align:left;overflow-wrap:anywhere">${w.vintage?esc(w.vintage)+' ':''}${esc(title(w))}</span><span class="pill ${s[1]}">${s[0]}</span></button>`}).join('')}</div></div>`:''}
   ${bars('보관 위치별 보유 병수',tally('location'))}${bars('스타일별 보유 병수',tally('style'))}${bars('국가별 보유 병수',tally('country'))}${bars('산지별 보유 병수',tally('region'))}
   <button type="button" class="btn" id="csv-btn">목록을 CSV로 내보내기</button>`;
 }
@@ -968,6 +981,7 @@ $('#add-btn').addEventListener('click',()=>openForm());
 $('#q').addEventListener('input',e=>{F.q=e.target.value;renderCellar()});
 $('#sort').addEventListener('change',e=>{F.sort=e.target.value;renderCellar()});
 $('#country').addEventListener('change',e=>{F.country=e.target.value;renderCellar()});
+$('#grape').addEventListener('change',e=>{F.grape=e.target.value;renderCellar()});
 $('#loc').addEventListener('change',e=>{F.loc=e.target.value;renderCellar()});
 $('#sheet').addEventListener('input',e=>{
   if(e.target.id==='pick-q'){renderPick();return}
@@ -1037,7 +1051,7 @@ $('#sheet').addEventListener('click',async e=>{
   else if(a==='save-cfg'){setCfg({key:$('#c-key').value.trim(),model:$('#c-model').value.trim()||DEF.model,web:$('#c-web').checked});closeSheet();render();toast('설정을 저장했습니다.');aiBlocked=false;sweepAi()}
   else if(a==='export'){download('wine-cellar-'+today()+'.json',JSON.stringify({app:'wine-cellar',version:1,exportedAt:new Date().toISOString(),wines,drinks,photos:thumbs}),'application/json');toast('백업 파일을 저장했습니다.')}
   else if(a==='import-pick')$('#c-import').click();
-  else if(a==='do-import'){if(pendingImport){wines=pendingImport.wines;drinks=pendingImport.drinks;imgReplace(pendingImport.photos);pendingImport=null;persist();closeSheet();render();toast('백업을 불러왔습니다.');sweepAi()}}
+  else if(a==='do-import'){if(pendingImport){wines=pendingImport.wines;drinks=pendingImport.drinks;imgReplace(pendingImport.photos);pendingImport=null;mergeLocs();persist();closeSheet();render();toast('백업을 불러왔습니다.');sweepAi()}}
   else if(a==='dl-csv'){download('wine-cellar-'+today()+'.csv','﻿'+csv(),'text/csv');toast('CSV 파일을 저장했습니다.')}
   else if(a==='copy-csv'){const t=$('#csv-out');try{await navigator.clipboard.writeText(t.value);toast('복사했습니다.')}catch(_){t.focus();t.select();toast('전체 선택했습니다. 길게 눌러 복사해 주세요.')}}
 });

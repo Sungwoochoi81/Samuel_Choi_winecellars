@@ -16,7 +16,7 @@
 :root{
   --bg:#f4f2ee; --surface:#ffffff; --ink:#1c1e1d; --muted:#666a66; --line:#e3e0d9; --accent:#1f4a3d; --on-accent:#fff; --card-a:#143328; --card-b:#235443; --card-ink:#f5f1e6; --gold:#d2b271; --gold-ink:#8a6a2a; --wine:#7a1f3d; --on-wine:#fff;
   --good:#2f7d55; --warn:#a8691a; --bad:#a43a3a;
-  --s-red:#8e2440; --s-white:#c8a640; --s-spark:#6f9fb5; --s-rose:#d98a94; --s-dessert:#b4701f; --s-fort:#5b3a2a;
+  --s-red:#8e2440; --s-white:#c8a640; --s-spark:#6f9fb5; --s-rose:#d98a94; --s-rosechamp:#e98f86; --s-dessert:#b4701f; --s-fort:#5b3a2a;
   --display:'Pretendard Variable',Pretendard,system-ui,-apple-system,'Malgun Gothic',sans-serif;
   --body:'Pretendard Variable',Pretendard,system-ui,-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
 }
@@ -24,14 +24,14 @@
   :root:not([data-theme="light"]){
     --bg:#121413; --surface:#1c1f1e; --ink:#ecebe6; --muted:#9da19c; --line:#2f3432; --accent:#86c9ad; --on-accent:#0d1a15; --card-a:#173a2e; --card-b:#255a47; --card-ink:#f5f1e6; --gold:#d8bb80; --gold-ink:#d8bb80; --wine:#9c2c50; --on-wine:#fbeef2;
     --good:#6cc596; --warn:#e0a653; --bad:#e58080;
-    --s-red:#c0456a; --s-white:#d9bd5f; --s-spark:#8dbcd0; --s-rose:#e7a3ac; --s-dessert:#d08e3c; --s-fort:#9a6f58;
+    --s-red:#c0456a; --s-white:#d9bd5f; --s-spark:#8dbcd0; --s-rose:#e7a3ac; --s-rosechamp:#f2a79f; --s-dessert:#d08e3c; --s-fort:#9a6f58;
     color-scheme:dark;
   }
 }
 :root[data-theme="dark"]{
   --bg:#121413; --surface:#1c1f1e; --ink:#ecebe6; --muted:#9da19c; --line:#2f3432; --accent:#86c9ad; --on-accent:#0d1a15; --card-a:#173a2e; --card-b:#255a47; --card-ink:#f5f1e6; --gold:#d8bb80; --gold-ink:#d8bb80; --wine:#9c2c50; --on-wine:#fbeef2;
   --good:#6cc596; --warn:#e0a653; --bad:#e58080;
-  --s-red:#c0456a; --s-white:#d9bd5f; --s-spark:#8dbcd0; --s-rose:#e7a3ac; --s-dessert:#d08e3c; --s-fort:#9a6f58;
+  --s-red:#c0456a; --s-white:#d9bd5f; --s-spark:#8dbcd0; --s-rose:#e7a3ac; --s-rosechamp:#f2a79f; --s-dessert:#d08e3c; --s-fort:#9a6f58;
   color-scheme:dark;
 }
 *{box-sizing:border-box}
@@ -436,17 +436,17 @@ nav a svg{width:22px;height:22px}
 <script>
 const $=(s,r=document)=>r.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const STYLES=[['레드','red'],['화이트','white'],['스파클링','spark'],['로제','rose'],['디저트','dessert'],['주정강화','fort']];
+const STYLES=[['레드','red'],['화이트','white'],['스파클링','spark'],['로제 샴페인','rosechamp'],['로제','rose'],['디저트','dessert'],['주정강화','fort']];
 /* 스타일 아이콘: 잔 모양과 와인 색으로 구분한다. 레드·화이트·로제는 같은 잔에 색만 다르고, 스파클링은 플루트, 디저트는 작은 디저트 와인잔, 주정강화는 포트 잔 */
 const STYLE_GLASS={
   wine:['M7 3h10l-1 7a4 4 0 0 1-8 0z','M7.45 6.2h9.1l-.55 3.8a4 4 0 0 1-8 0z','M12 14v6M8 21h8'],
   flute:['M9.2 2h5.6l-.6 9.4a2.2 2.2 0 0 1-4.4 0z','M9.5 5.4h5l-.3 6a2.2 2.2 0 0 1-4.4 0z','M12 13.6V20M9 21h6'],
   dessert:['M8.6 5h6.8l-.7 5.4a2.7 2.7 0 0 1-5.4 0z','M8.85 6.8h6.3l-.45 3.6a2.7 2.7 0 0 1-5.4 0z','M12 13.1V20M9 21h6'],
   port:['M8 6h8l-.5 5a3.5 3.5 0 0 1-7 0z','M8.25 8.4h7.5l-.25 2.6a3.5 3.5 0 0 1-7 0z','M12 14.5V18M8.5 20.5h7M12 18v2.5']};
-const STYLE_SHAPE={'스파클링':'flute','디저트':'dessert','주정강화':'port'};
+const STYLE_SHAPE={'스파클링':'flute','로제 샴페인':'flute','디저트':'dessert','주정강화':'port'};
 function styleIcon(st){
   const g=STYLE_GLASS[STYLE_SHAPE[st]||'wine'];
-  return`<svg class="sgl" viewBox="0 0 24 24" aria-hidden="true"><path d="${g[1]}" fill="${st==='스파클링'?'#e2cf7a':st==='주정강화'?'#6a2230':styleVar(st)}" stroke="none"/>${st==='스파클링'?'<circle cx="11.3" cy="8.6" r=".7" fill="var(--surface)" stroke="none"/><circle cx="12.8" cy="6.9" r=".6" fill="var(--surface)" stroke="none"/>':''}<path d="${g[0]}"/><path d="${g[2]}"/></svg>`;
+  return`<svg class="sgl" viewBox="0 0 24 24" aria-hidden="true"><path d="${g[1]}" fill="${st==='스파클링'?'#e2cf7a':st==='로제 샴페인'?'#ef9f97':st==='주정강화'?'#6a2230':styleVar(st)}" stroke="none"/>${st==='스파클링'||st==='로제 샴페인'?'<circle cx="11.3" cy="8.6" r=".7" fill="var(--surface)" stroke="none"/><circle cx="12.8" cy="6.9" r=".6" fill="var(--surface)" stroke="none"/>':''}<path d="${g[0]}"/><path d="${g[2]}"/></svg>`;
 }
 const styleVar=s=>{const f=STYLES.find(x=>x[0]===s);return f?`var(--s-${f[1]})`:'var(--line)'};
 const won=n=>(n||n===0)&&isFinite(n)?Math.round(n).toLocaleString('ko-KR')+'원':'';
@@ -466,7 +466,16 @@ try{const f=JSON.parse(sessionStorage.getItem('cellar.filter')||'null');if(f&&ty
 function keepFilter(){try{sessionStorage.setItem('cellar.filter',JSON.stringify(F))}catch(_){}}
 const LOCS=['삼성셀러','매직쉐프셀러','거실옷장','삼각창고','기타 장소'];
 /* 외부창고는 기타 장소로 합쳤다: 예전에 저장된 값도 옮긴다 */
-function mergeLocs(){let n=0;for(const w of wines){if(!w)continue;if(w.location==='외부창고'){w.location='기타 장소';n++}if(w.grape){const g=normGrapes(w.grape);if(g!==w.grape){w.grape=g;n++}}if(w.region){const r=regionEn(w.region);if(r!==w.region){w.region=r;n++}}}return n}
+/* 로제 샴페인 분류: 샹파뉴(지역·아펠라시옹·이름 또는 알려진 샴페인 하우스)의 로제는 스파클링·로제 대신 로제 샴페인으로 */
+const CHAMP_HOUSE=/krug|dom\s*p[ée]rignon|perrier[\s-]*jou[eë]t|belle\s*[ée]poque|roederer|cristal|selosse|ruinart|billecart|bollinger|taittinger|laurent[\s-]*perrier|mo[eë]t|veuve\s*clicquot|pol\s*roger|gosset|jacquesson|egly[\s-]*ouriet|deutz|henriot|heidsieck|philipponnat|drappier|lanson|pommery|agrapart|larmandier|bereche|b[ée]r[êe]che|savart|prevost|pr[ée]vost|ulysse\s*collin|vilmart|armand\s*de\s*brignac/i;
+function isRoseChamp(w){
+  if(!['스파클링','로제'].includes(w.style))return false;
+  const txt=[w.producer,w.name,w.appellation,w.region].join(' ');
+  const champ=/champagne|샹파뉴|샴페인/i.test(txt)||CHAMP_HOUSE.test(txt);
+  const rose=w.style==='로제'||/ros[ée]|로제/i.test([w.name,w.appellation].join(' '));
+  return champ&&rose;
+}
+function mergeLocs(){let n=0;for(const w of wines){if(!w)continue;if(isRoseChamp(w)){w.style='로제 샴페인';n++}if(w.location==='외부창고'){w.location='기타 장소';n++}if(w.grape){const g=normGrapes(w.grape);if(g!==w.grape){w.grape=g;n++}}if(w.region){const r=regionEn(w.region);if(r!==w.region){w.region=r;n++}}}return n}
 const CURS=['KRW','EUR','USD','JPY'],CUNIT={JPY:100},CSYM={KRW:'₩',EUR:'€',USD:'$',JPY:'¥'};
 const COUNTRIES=['프랑스','이탈리아','스페인','미국','독일','포르투갈','호주','뉴질랜드','칠레','아르헨티나','남아공','오스트리아'];
 const CLASSES=['Grand Cru','1er Cru','Village','Régionale','DOCG','DOC','Grand Cru Classé','Reserva','Gran Reserva'];
@@ -834,7 +843,7 @@ async function directRead(){
     else content.push({type:'text',text:'첨부 파일 "'+f.name+'"의 내용:\n'+f.data});
   }
   content.push({type:'text',text:`첨부한 자료는 와인 온라인 구매(직구) 내역이다. 주문한 와인을 한 종류씩 읽어 아래 형식의 JSON 객체 하나만 답하라. 다른 글은 쓰지 마라.
-{"items":[{"producer": 생산자명(원어), "name": 와인명(원어, 생산자명과 빈티지 제외), "vintage": 연도 숫자. 논빈티지는 "NV", 멀티 빈티지는 "MV", "style": "레드"|"화이트"|"스파클링"|"로제"|"디저트"|"주정강화", "country": 국가(한국어), "region": 지역(영문), "appellation": 마을/밭(원어), "classification": 등급 또는 "", "grape": 품종(영문, 쉼표 구분), "size": 용량 ml 숫자(안 보이면 750), "qty": 주문 수량 숫자, "unitPrice": 1병 가격 숫자(결제 통화 기준, 배송비·세금 제외. 여러 병 합계만 있으면 수량으로 나눈다), "currency": "KRW"|"EUR"|"USD"|"JPY", "purchaseDate": 주문일 YYYY-MM-DD, "store": 구매처(사이트·가게 이름), "eta": 도착 예정일 YYYY-MM-DD 또는 ""}], "reply": 읽은 내용을 한국어 한 문장으로}
+{"items":[{"producer": 생산자명(원어), "name": 와인명(원어, 생산자명과 빈티지 제외), "vintage": 연도 숫자. 논빈티지는 "NV", 멀티 빈티지는 "MV", "style": "레드"|"화이트"|"스파클링"|"로제 샴페인"|"로제"|"디저트"|"주정강화"(샹파뉴 지역의 로제 스파클링은 "로제 샴페인", 그 밖의 스파클링은 "스파클링"), "country": 국가(한국어), "region": 지역(영문), "appellation": 마을/밭(원어), "classification": 등급 또는 "", "grape": 품종(영문, 쉼표 구분), "size": 용량 ml 숫자(안 보이면 750), "qty": 주문 수량 숫자, "unitPrice": 1병 가격 숫자(결제 통화 기준, 배송비·세금 제외. 여러 병 합계만 있으면 수량으로 나눈다), "currency": "KRW"|"EUR"|"USD"|"JPY", "purchaseDate": 주문일 YYYY-MM-DD, "store": 구매처(사이트·가게 이름), "eta": 도착 예정일 YYYY-MM-DD 또는 ""}], "reply": 읽은 내용을 한국어 한 문장으로}
 자료에 보이는 값만 적고, 읽을 수 없는 값은 "" 또는 null로 둔다. 국가·지역·품종·스타일은 와인 이름과 생산자로부터 추론해도 된다. 와인이 아닌 상품, 배송비, 할인 줄은 넣지 않는다. 오늘은 ${today()}.${note?'\n사용자가 덧붙인 말(자료에 없는 값을 채우는 데만 쓴다): '+JSON.stringify(note):''}`});
   btn.disabled=true;st.textContent='AI가 구매 내역을 읽는 중입니다. 30초쯤 걸릴 수 있습니다…';
   let r;
@@ -1078,7 +1087,7 @@ function priceText(w){
   return`${CSYM[w.currency]||''}${amt(w.priceOrig)} ${w.currency} → ${won(w.price)}`;
 }
 const SCAN_PROMPT=`사진은 와인 병 라벨이다. 라벨을 읽고 아래 키를 가진 JSON 객체 하나만 답하라. 다른 글은 쓰지 마라.
-{"producer": 생산자명(원어), "name": 퀴베/와인명(원어, 생산자명과 빈티지 제외), "vintage": 연도 숫자. 논빈티지는 "NV", 멀티 빈티지는 "MV", "style": "레드"|"화이트"|"스파클링"|"로제"|"디저트"|"주정강화", "country": 국가(한국어), "region": 지역(영문 표기, 예: Burgundy, Bordeaux, Napa Valley), "appellation": 마을/밭/아펠라시옹(원어), "classification": 등급(예: Grand Cru, 1er Cru, Village, DOCG) 또는 "", "grape": 주요 품종(영문 표기, 쉼표 구분. 예: Pinot Noir), "size": 용량 ml 숫자(안 보이면 750)}
+{"producer": 생산자명(원어), "name": 퀴베/와인명(원어, 생산자명과 빈티지 제외), "vintage": 연도 숫자. 논빈티지는 "NV", 멀티 빈티지는 "MV", "style": "레드"|"화이트"|"스파클링"|"로제 샴페인"|"로제"|"디저트"|"주정강화"(샹파뉴 지역의 로제 스파클링은 "로제 샴페인", 그 밖의 스파클링은 "스파클링"), "country": 국가(한국어), "region": 지역(영문 표기, 예: Burgundy, Bordeaux, Napa Valley), "appellation": 마을/밭/아펠라시옹(원어), "classification": 등급(예: Grand Cru, 1er Cru, Village, DOCG) 또는 "", "grape": 주요 품종(영문 표기, 쉼표 구분. 예: Pinot Noir), "size": 용량 ml 숫자(안 보이면 750)}
 라벨에서 읽을 수 없는 값은 "" 또는 null로 둔다. 국가, 지역, 품종, 스타일은 아펠라시옹과 생산자로부터 추론해도 된다.`;
 /* 라벨에서 읽은 값을 등록 화면 칸에 채운다. 직접 고친 칸은 다시 읽어도 덮어쓰지 않는다 */
 function applyScan(r){

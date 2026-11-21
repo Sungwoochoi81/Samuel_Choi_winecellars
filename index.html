@@ -335,6 +335,13 @@ h1{font-size:19px;font-weight:700;white-space:nowrap;letter-spacing:-.02em}
 .bth.off img{opacity:.4}
 .acts .btn.go{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px}
 .acts .btn.go svg{width:18px;height:18px;flex:none}
+.ngrp{margin:0;min-width:0;gap:4px}
+.ngrp legend{padding:0 4px;font-size:13px}
+.nopt{display:flex;gap:10px;align-items:flex-start;padding:8px 2px;border-top:1px solid var(--line);min-height:44px}
+.nopt:first-of-type{border-top:0}
+.nopt input{width:18px;height:18px;margin:2px 0 0;flex:none;accent-color:var(--accent)}
+.nopt span{min-width:0;display:flex;flex-direction:column;gap:1px;overflow-wrap:anywhere}
+.nopt small{font-size:11.5px;color:var(--muted)}
 .scores{display:flex;flex-wrap:wrap;gap:6px}
 .hero-sc{display:inline-flex;gap:8px;align-items:center}
 .hero-sc .sc{font-size:13px}
@@ -412,6 +419,7 @@ nav a svg{width:22px;height:22px}
       <div class="statebar" id="statebar" hidden><span id="state-text"></span><button type="button" class="btn small" id="state-clear">전체 보기</button></div>
       <div class="countrow"><div class="count" id="count"></div><label class="check"><input type="checkbox" id="show-empty"> 다 마신 와인 포함</label></div>
     </div>
+    <div class="statebar" id="name-hint" hidden></div>
     <div class="list" id="list"><div class="blank" id="loadnote">셀러를 불러오는 중입니다…</div></div>
   </div>
   <div class="wrap" id="v-incoming" hidden><div class="wrap" id="incoming"></div></div>
@@ -772,22 +780,99 @@ function renderCellar(){
   rows.sort(sorters[F.sort]||sorters.recent);
   cellarOrder=rows.map(w=>w.id); /* 상세 화면에서 옆으로 넘길 때 따르는 순서 */
   const bottles=rows.reduce((s,w)=>s+Math.max(0,w.qty||0),0);
-  $('#count').textContent=wines.length?`${bottles}병 · ${rows.length}종`:'';
+  /* 같은 와인(생산자·와인명·빈티지·용량이 같음)이 보관 위치 등만 달라 여러 항목이면 목록에서는 한 줄로 묶어 보여 준다. 데이터는 합치지 않는다 */
+  const groups=[],byKey={};
+  for(const w of rows){const k=sameKey(w);if(byKey[k])byKey[k].push(w);else groups.push(byKey[k]=[w])}
+  $('#count').textContent=wines.length?`${bottles}병 · ${groups.length}종`:'';
   if(!wines.length){list.innerHTML='<div class="blank"><strong>아직 등록한 와인이 없습니다</strong>위의 ＋ 와인 추가를 눌러 라벨을 촬영하거나 직접 입력해 보세요.</div>';return}
   if(!rows.length){list.innerHTML='<div class="blank">조건에 맞는 와인이 없습니다.</div>';return}
-  list.innerHTML=rows.map(w=>{
-    const st=winState(w);
-    const sub=[(flag(w.country)?flag(w.country)+' ':'')+(w.region||w.country||''),w.appellation,grapesOf(w).map(gAbbr).join(', '),w.classification].filter(Boolean).join(' · ');
-    const out=!((w.qty||0)>0);
-    return`<button type="button" class="wine${out?' empty':''}" data-wine="${esc(w.id)}">
-      <span class="thumb" style="--c:${styleVar(w.style)}">${imgTag(w.id)||GLASS}</span>
-      <span class="w-main"><span class="w-top"><span class="w-vint${w.vintage?'':' nv'}">${w.vintage?esc(w.vintage):'NV'}</span>${st&&!out?`<span class="pill ${st[1]}">${st[0]}</span>`:''}${aiStatus(w)?`<span class="pill ai">AI 해설 ${aiStatus(w)}</span>`:''}${w.location?`<span class="w-loc">${esc(locText(w))}</span>`:''}${scoreLine(w)?`<span class="w-sc">${scoreLine(w)}</span>`:''}</span>
+  list.innerHTML=groups.map(g=>{
+    const w=g[0],many=g.length>1;
+    const qty=g.reduce((a,x)=>a+Math.max(0,x.qty||0),0);
+    const st=winState(g.find(x=>winState(x))||w);
+    const sub=[w.size&&w.size!==750?(w.size>=1000?(w.size/1000)+'L':w.size+'ml'):'',(flag(w.country)?flag(w.country)+' ':'')+(w.region||w.country||''),w.appellation,grapesOf(w).map(gAbbr).join(', '),w.classification].filter(Boolean).join(' · ');
+    const out=!(qty>0);
+    /* 구매가는 병수로 가중한 평균, 시세는 값이 있는 항목의 평균 */
+    const pq=g.filter(x=>x.price).reduce((a,x)=>a+Math.max(1,x.qty||0),0),price=pq?Math.round(g.filter(x=>x.price).reduce((a,x)=>a+x.price*Math.max(1,x.qty||0),0)/pq):null;
+    const ms=g.filter(x=>x.marketKRW),market=ms.length?Math.round(ms.reduce((a,x)=>a+x.marketKRW,0)/ms.length):null;
+    const locs=locSplit(g),locTxt=many?locs.map(([l,n])=>`${l} ${n}`).join(' · '):locText(w);
+    const pic=g.find(x=>thumbs[x.id])||w,sc=g.find(x=>scoreLine(x))||w,ai=g.find(x=>aiStatus(x));
+    return`<button type="button" class="wine${out?' empty':''}" ${many?`data-group="${esc(sameKey(w))}"`:`data-wine="${esc(w.id)}"`}>
+      <span class="thumb" style="--c:${styleVar(w.style)}">${imgTag(pic.id)||GLASS}</span>
+      <span class="w-main"><span class="w-top"><span class="w-vint${w.vintage?'':' nv'}">${w.vintage?esc(w.vintage):'NV'}</span>${st&&!out?`<span class="pill ${st[1]}">${st[0]}</span>`:''}${ai?`<span class="pill ai">AI 해설 ${aiStatus(ai)}</span>`:''}${locTxt?`<span class="w-loc">${esc(locTxt)}</span>`:''}${scoreLine(sc)?`<span class="w-sc">${scoreLine(sc)}</span>`:''}</span>
         <span class="w-name">${esc(title(w))}</span>
         ${sub?`<span class="w-sub">${esc(sub)}</span>`:''}
-        ${w.price||w.marketKRW?`<span class="w-meta">${(w.qty||0)>1?'<span class="price">병당</span>':''}${w.price?`<span class="price">구매 ${won(w.price)}</span>`:''}${w.marketKRW?`<span class="price">시세 ${won(w.marketKRW)}</span>`:''}</span>`:''}
+        ${price||market?`<span class="w-meta">${qty>1?`<span class="price">${many&&g.filter(x=>x.price).some(x=>x.price!==price)?'병당 평균':'병당'}</span>`:''}${price?`<span class="price">구매 ${won(price)}</span>`:''}${market?`<span class="price">시세 ${won(market)}</span>`:''}</span>`:''}
       </span>
-      <span class="w-qty">${Math.max(0,w.qty||0)}<small>병</small></span>
+      <span class="w-qty">${qty}<small>병</small></span>
     </button>`}).join('');
+  renderNameHint();
+}
+/* 묶인 와인의 보관 위치별 병수: 많은 곳부터 */
+function locSplit(g){const m={};for(const x of g){const l=x.location||'미지정';m[l]=(m[l]||0)+Math.max(0,x.qty||0)}return Object.entries(m).sort((a,b)=>b[1]-a[1])}
+function openGroup(key){
+  const g=wines.filter(x=>sameKey(x)===key).sort((a,b)=>Math.max(0,b.qty||0)-Math.max(0,a.qty||0)||(b.createdAt||0)-(a.createdAt||0));
+  if(!g.length)return closeSheet();
+  if(g.length===1){sheetStack.pop();openWine(g[0].id);return}
+  const w=g[0],qty=g.reduce((a,x)=>a+Math.max(0,x.qty||0),0);
+  sheet(esc(title(w)),`<div class="hero"><span class="v">${w.vintage?esc(w.vintage):'NV'}</span><span class="w-meta"><span>${qty}병 보유 · ${g.length}개 항목</span></span></div>
+    <p style="margin:0;font-size:14px">${esc(locSplit(g).map(([l,n])=>`${l} ${n}병`).join(' · '))}</p>
+    <p class="hint" style="margin:0">같은 와인이 보관 위치나 구매 조건이 달라 따로 등록돼 있습니다. 항목을 누르면 상세 화면이 열립니다.</p>
+    <div class="rlist">${g.map(x=>`<button type="button" data-act="open-wine" data-id="${esc(x.id)}"><span class="in-main"><span class="rn">${esc(x.location||'보관 위치 미지정')}</span><span class="in-sub">${esc([x.price?'병당 '+priceText(x):'구매가 없음',x.store,x.purchaseDate?x.purchaseDate.slice(2).replace(/-/g,'.')+' 구매':''].filter(Boolean).join(' · '))}</span></span><span class="in-qty">${Math.max(0,x.qty||0)}<small>병</small></span></button>`).join('')}</div>`);
+}
+
+/* ---------- 이름 통일 추천: 같은 빈티지·용량인데 이름 표기만 조금 다른 와인을 찾아, 어느 표기로 맞출지 고르게 한다 ---------- */
+const NAME_STOP=new Set(['chateau','ch','domaine','dom','dme','maison','tenuta','bodega','bodegas','weingut','cantina','azienda','agricola','the','de','du','des','la','le','les','di','del','della','et','and','vin','wine','wines']);
+const NAME_KEEP=/^(rose|rouge|blanc|blancs|noir|noirs|brut|sec|doux|reserve|riserva|reserva|grand|premier|vieilles|cuvee|[0-9]+.*)$/;
+const nameTok=w=>[...new Set(String([w.producer,w.name].join(' ')).normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9가-힣]+/g,' ').trim().split(' ').filter(t=>t&&!NAME_STOP.has(t)))];
+function lev1(a,b){if(a===b)return true;if(Math.abs(a.length-b.length)>1||Math.min(a.length,b.length)<5)return false;let i=0,j=0,d=0;while(i<a.length&&j<b.length){if(a[i]===b[j]){i++;j++}else{if(++d>1)return false;if(a.length>b.length)i++;else if(b.length>a.length)j++;else{i++;j++}}}return d+(a.length-i)+(b.length-j)<=1}
+function nameSim(a,b){ /* 0~1. 색·등급 같은 구분 단어가 한쪽에만 있으면 다른 와인으로 본다 */
+  const ua=a.filter(t=>!b.some(u=>lev1(t,u))),ub=b.filter(t=>!a.some(u=>lev1(t,u)));
+  if([...ua,...ub].some(t=>NAME_KEEP.test(t)))return 0;
+  const inter=a.length-ua.length,uni=a.length+ub.length;return uni?inter/uni:0;
+}
+const spellOf=w=>(w.producer||'')+'\u241F'+(w.name||'');
+/* 기본으로 권할 표기: 많이 쓴 표기 우선, 생산자명이 와인명에 되풀이된 표기와 줄임 표기(Ch.)는 뒤로, 악센트를 살린 표기는 앞으로 */
+function spellScore(sp){const pt=nameTok({producer:sp.producer}),nt=nameTok({name:sp.name});return sp.wines.length*10-(nt.length&&nt.every(t=>pt.includes(t))?6:0)-(/\b[A-Za-z]{1,3}\./.test(sp.producer+' '+sp.name)?3:0)+(/[^\x00-\x7f]/.test(sp.producer+sp.name)?2:0)+Math.min(3,(sp.producer+sp.name).length/20)}
+function nameGroups(){
+  let skip=[];try{skip=JSON.parse(localStorage.getItem('cellar.nodup')||'[]')}catch(_){}
+  const out=[],buckets={};
+  for(const w of wines){if(!w||!(w.producer||w.name))continue;const k=(w.vintage==null||w.vintage===''?'NV':w.vintage)+'|'+(w.size||750);(buckets[k]=buckets[k]||[]).push(w)}
+  for(const k of Object.keys(buckets)){
+    const sp=[...new Set(buckets[k].map(spellOf))];if(sp.length<2)continue;
+    const tok=sp.map(x=>nameTok({producer:x.split('\u241F')[0],name:x.split('\u241F')[1]})),par=sp.map((_,i)=>i),find=i=>par[i]===i?i:(par[i]=find(par[i]));
+    for(let i=0;i<sp.length;i++)for(let j=i+1;j<sp.length;j++)if(tok[i].length&&tok[j].length&&nameSim(tok[i],tok[j])>=0.8)par[find(i)]=find(j);
+    const cl={};sp.forEach((x,i)=>(cl[find(i)]=cl[find(i)]||[]).push(x));
+    for(const c of Object.values(cl)){if(c.length<2)continue;const key=k+'|'+[...c].sort().join('\u241E');if(skip.includes(key))continue;
+      out.push({key,vint:k.split('|')[0],spells:c.map(x=>({spell:x,producer:x.split('\u241F')[0],name:x.split('\u241F')[1],wines:buckets[k].filter(w=>spellOf(w)===x)})).sort((a,b)=>spellScore(b)-spellScore(a))})}
+  }
+  return out;
+}
+function renderNameHint(){
+  const el=$('#name-hint');if(!el)return;const n=nameGroups().length;
+  el.hidden=!n;if(n)el.innerHTML=`<span>이름 표기만 조금 다른 같은 와인이 <b>${n}묶음</b> 있습니다.</span><button type="button" class="btn small" id="name-hint-btn">통일 추천 보기</button>`;
+}
+function openNames(){
+  const gs=nameGroups();
+  sheet('이름 통일 추천',gs.length?`<p class="hint" style="font-size:14px;color:var(--ink);margin:0">같은 빈티지인데 이름 표기만 조금 다른 와인입니다. 묶음마다 맞출 표기를 고르세요. 빈티지가 다른 와인은 서로 다른 와인으로 보고 묶지 않습니다.</p>
+    ${gs.map((g,gi)=>`<fieldset class="chg ngrp" data-key="${esc(g.key)}"><legend class="who">${esc(g.vint)} · 표기 ${g.spells.length}가지</legend>
+      ${g.spells.map((sp,si)=>`<label class="nopt"><input type="radio" name="ng${gi}" value="${si}" ${si===0?'checked':''}><span><b>${esc([sp.producer,sp.name&&sp.name!==sp.producer?sp.name:''].filter(Boolean).join(' '))}</b><small>${esc(sp.producer?'생산자: '+sp.producer:'생산자 없음')} · ${esc(sp.name?'와인명: '+sp.name:'와인명 없음')} · ${sp.wines.length}개 항목 ${sp.wines.reduce((a,w)=>a+Math.max(0,w.qty||0),0)}병</small></span></label>`).join('')}
+      <label class="nopt"><input type="radio" name="ng${gi}" value="keep"><span><b>그대로 두기</b><small>서로 다른 와인입니다. 다시 추천하지 않습니다.</small></span></label></fieldset>`).join('')}
+    <p class="hint">적용하면 고른 표기로 생산자와 와인명만 바뀝니다. 수량·보관 위치·구매 정보는 그대로이고, 항목을 합치지도 않습니다.</p>
+    <div class="savebar" style="margin-left:-16px;margin-right:-16px"><button type="button" class="btn primary" data-act="names-apply">고른 대로 적용</button></div>`
+    :'<p>이름 표기가 서로 다른 같은 와인을 찾지 못했습니다.</p>');
+}
+function applyNames(){
+  const gs=nameGroups();let changed=0,kept=0,skip=[];try{skip=JSON.parse(localStorage.getItem('cellar.nodup')||'[]')}catch(_){}
+  document.querySelectorAll('#sheet .ngrp').forEach(fs=>{
+    const g=gs.find(x=>x.key===fs.dataset.key),v=(fs.querySelector('input:checked')||{}).value;if(!g||v===undefined)return;
+    if(v==='keep'){skip.push(g.key);kept++;return}
+    const to=g.spells[+v];if(!to)return;
+    for(const sp of g.spells)if(sp!==to)for(const w of sp.wines){const i=wines.findIndex(x=>x.id===w.id);if(i>=0){wines[i]={...wines[i],producer:to.producer,name:to.name,updatedAt:Date.now()};changed++}}
+  });
+  try{localStorage.setItem('cellar.nodup',JSON.stringify(skip.slice(-300)))}catch(_){}
+  if(changed&&!persist())return;
+  closeSheet();render();toast(changed?`와인 ${changed}개 항목의 이름을 통일했습니다.`:kept?'그대로 두었습니다. 이 묶음은 다시 추천하지 않습니다.':'바뀐 내용이 없습니다.');
 }
 /* ---------- 입고예정: 사 두고 도착을 기다리는 와인. 도착하면 셀러에 등록으로 넘긴다 ---------- */
 let inGroup='store',inDraft=[],inFiles=[];
@@ -1670,6 +1755,7 @@ function openSettings(){
       <label class="check full" style="grid-column:1/-1;font-size:14px;color:var(--ink)"><input type="checkbox" id="c-web" ${c.web?'checked':''}> 해설과 시세를 웹 검색으로 찾기 (더 정확하지만 느리고 요금이 더 듭니다)</label>
       <div class="field full"><button type="button" class="btn primary" data-act="save-cfg">설정 저장</button></div>
     </div>
+    <div class="panel"><h2>데이터 정리</h2><p class="hint">같은 빈티지인데 이름 표기만 조금 다른 와인을 찾아 한 가지 표기로 맞춥니다.</p><div class="acts" style="margin-top:8px"><button type="button" class="btn" data-act="names-open">이름 통일 추천 보기</button></div></div>
     <div class="panel"><h2>백업</h2>
       <p class="hint">와인 목록과 기록은 이 폰 안에만 저장됩니다. 폰을 바꾸거나 브라우저 데이터를 지우기 전에 백업 파일을 받아 두세요.</p>
       <div class="acts" style="margin-top:8px"><button type="button" class="btn" data-act="export">백업 파일 저장</button><button type="button" class="btn" data-act="import-pick">백업 불러오기</button></div>
@@ -1678,7 +1764,7 @@ function openSettings(){
 }
 
 /* 화면을 여는 함수마다 '다시 여는 방법'을 기록해 뒤로가기에서 쓴다 */
-for(const n of['openForm','openWine','openDrink','openPicker','openMove','openSettings','openAsk','openAskAll','openDirect','openReview','openIncoming','openBatch']){
+for(const n of['openForm','openWine','openDrink','openPicker','openMove','openSettings','openAsk','openAskAll','openDirect','openReview','openIncoming','openBatch','openGroup','openNames']){
   const f=window[n];
   window[n]=function(...a){
     nextScr={key:n+':'+JSON.stringify(a.filter(x=>x===null||typeof x!=='object')),fn:(...b)=>window[n](...b),args:a.map(x=>x instanceof Event?undefined:x)};
@@ -1751,6 +1837,8 @@ document.querySelector('main').addEventListener('click',e=>{
     else{F.state=k==='stock'?'':k;F.loc='';goCellar()}
     return}
   const g=e.target.closest('[data-goloc]');if(g){F.loc=g.dataset.goloc;F.state='';goCellar();return}
+  if(e.target.id==='name-hint-btn'){openNames();return}
+  const gr=e.target.closest('[data-group]');if(gr){openGroup(gr.dataset.group);return}
   const w=e.target.closest('[data-wine]');if(w){openWine(w.dataset.wine);return}
   const d=e.target.closest('[data-drink]');if(d){openDrink(null,d.dataset.drink);return}
   const ig=e.target.closest('[data-ingroup]');if(ig){inGroup=ig.dataset.ingroup;renderIncoming();return}
@@ -1772,6 +1860,9 @@ $('#sheet').addEventListener('click',async e=>{
   else if(a==='ask-again')openAsk(id);
   else if(a==='askall-again')openAskAll();
   else if(a==='askall-file')$('#askall-file').click();
+  else if(a==='open-wine')openWine(id);
+  else if(a==='names-open')openNames();
+  else if(a==='names-apply')applyNames();
   else if(a==='batch-shoot')$('#batch-cam').click();
   else if(a==='batch-pick')$('#batch-file').click();
   else if(a==='batch-review')batchReview(0);

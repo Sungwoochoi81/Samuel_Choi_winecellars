@@ -71,6 +71,8 @@ main{flex:1;overflow-y:auto;padding:0 16px 20px;min-height:0}
 .ask input{width:18px;height:18px;min-height:0;padding:0;margin:0;flex:none;accent-color:var(--accent)}
 .ask .hint{margin-top:2px}
 .check{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)}
+.countrow{display:flex;justify-content:space-between;align-items:center;gap:10px;min-height:24px}
+.countrow .check{font-size:12px;margin-left:auto}
 .count{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
 
 .list{display:flex;flex-direction:column;gap:8px}
@@ -174,15 +176,16 @@ h1{font-size:19px;font-weight:700;white-space:nowrap;letter-spacing:-.02em}
 .sum-stats b{font-size:16px;font-variant-numeric:tabular-nums}
 .sum-stats span{font-size:11px;opacity:.8}
 .sum-stats button+button{border-left:1px solid rgba(255,255,255,.14)}
-.quick{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.quick button{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;font-weight:600;min-height:52px;text-align:left}
+.quick{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.quick button{display:flex;align-items:center;justify-content:center;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 4px;font-weight:600;font-size:13.5px;min-height:46px;white-space:nowrap;min-width:0}
+.quick svg{flex:none;width:18px;height:18px}
 .quick svg{color:var(--gold-ink)}
 .sec{display:flex;justify-content:space-between;align-items:baseline;margin-top:6px}
 .sec h2{font-size:16px;margin:0;font-weight:700}
 .sec a{font-size:13px;color:var(--accent);text-decoration:none;padding:6px 0}
-.shelf{display:flex;gap:10px;overflow-x:auto;padding:2px 16px 6px;margin:0 -16px;scrollbar-width:none;scroll-snap-type:x proximity}
+.shelf{display:flex;gap:10px;overflow-x:auto;padding:2px 0 6px;margin:0;scrollbar-width:none;scroll-snap-type:x mandatory}
 .shelf::-webkit-scrollbar{display:none}
-.bottle{flex:none;width:calc((100% - 20px)/3);max-width:160px;min-width:0;background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden;text-align:left;padding:0;display:flex;flex-direction:column;scroll-snap-align:start}
+.bottle{flex:none;width:calc((100% - 20px)/3);min-width:0;background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden;text-align:left;padding:0;display:flex;flex-direction:column;scroll-snap-align:start}
 .ph{position:relative;height:150px;display:grid;place-items:center;background:color-mix(in srgb,var(--c) 13%,var(--surface));color:color-mix(in srgb,var(--c) 72%,var(--ink))}
 .ph img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .ph .pv{font-size:30px;font-weight:800;letter-spacing:-.03em}
@@ -259,9 +262,8 @@ nav a svg{width:22px;height:22px}
           <option value="window">시음 적기 빠른 순</option>
         </select>
       </div>
-      <div class="row2"><label class="check"><input type="checkbox" id="show-empty"> 다 마신 와인 포함</label></div>
       <div class="statebar" id="statebar" hidden><span id="state-text"></span><button type="button" class="btn small" id="state-clear">전체 보기</button></div>
-      <div class="count" id="count"></div>
+      <div class="countrow"><div class="count" id="count"></div><label class="check"><input type="checkbox" id="show-empty"> 다 마신 와인 포함</label></div>
     </div>
     <div class="list" id="list"><div class="blank" id="loadnote">셀러를 불러오는 중입니다…</div></div>
   </div>
@@ -453,7 +455,21 @@ function render(){
   if(r==='home')renderHome();else if(r==='cellar')renderCellar();else if(r==='history')renderHistory();else renderStats();
 }
 const GLASS='<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10l-1 7a4 4 0 0 1-8 0z"/><path d="M12 14v6M8 21h8"/></svg>';
-const imgTag=id=>thumbs[id]?`<img src="${thumbs[id]}" alt="">`:'';
+/* 사진을 화면에 넣을 때마다 큰 사진 데이터를 통째로 다시 쓰면 느려지므로, 사진마다 짧은 주소를 한 번만 만들어 다시 쓴다 */
+const tUrl={};
+function thumbUrl(id){
+  const d=thumbs[id],c=tUrl[id];
+  if(!d){if(c){URL.revokeObjectURL(c.u);delete tUrl[id]}return''}
+  if(c&&c.d===d)return c.u;
+  if(c)URL.revokeObjectURL(c.u);
+  try{
+    const i=d.indexOf(','),bin=atob(d.slice(i+1)),a=new Uint8Array(bin.length);
+    for(let k=0;k<bin.length;k++)a[k]=bin.charCodeAt(k);
+    const u=URL.createObjectURL(new Blob([a],{type:d.slice(5,i).split(';')[0]||'image/jpeg'}));
+    tUrl[id]={d,u};return u;
+  }catch(_){return d}
+}
+const imgTag=id=>thumbs[id]?`<img src="${thumbUrl(id)}" alt="" decoding="async">`:'';
 function lastScore(id){const d=drinks.filter(x=>x.wineId===id&&x.score).sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')))[0];return d?d.score:null}
 function bottleCard(w){
   const sc=lastScore(w.id);
@@ -490,7 +506,6 @@ function renderHome(){
       <button type="button" data-home="add"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>직접 입력</button>
       <button type="button" data-home="drink">${GLASS}마시기</button>
       <button type="button" data-home="move"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h15l-3-3M20 16H5l3 3"/></svg>위치 옮기기</button>
-      <button type="button" data-home="backup"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 11l5 5 5-5M5 20h14"/></svg>백업 저장</button>
     </div>
     ${drinks.length?`<div class="sec"><h2>최근 마신 와인</h2><a href="#history">전체 보기</a></div><div class="shelf">${[...drinks].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))||(b.createdAt||0)-(a.createdAt||0)).slice(0,10).map(drinkCard).join('')}</div>`:''}
     ${wines.length?`<div class="sec"><h2>최근 등록한 와인</h2><a href="#cellar">전체 보기</a></div><div class="shelf">${recent.map(bottleCard).join('')}</div>`
@@ -627,7 +642,7 @@ function openForm(id){
   const cur=w.currency||(w.price?'KRW':ranked(CURS,curOf)[0]);
   sheet(id?'와인 수정':'와인 추가',`
     <div class="scan">
-      <div class="pvw"><img id="f-thumb" alt="" ${thumbs[id]?`src="${thumbs[id]}"`:'hidden'}>
+      <div class="pvw"><img id="f-thumb" alt="" ${thumbs[id]?`src="${thumbUrl(id)}"`:'hidden'}>
         <div class="bar5">
           <button type="button" class="btn${id?'':' primary'}" data-act="shoot">${id?'사진 촬영':'라벨 촬영'}</button>
           <button type="button" class="btn" data-act="pick">사진 선택</button>
@@ -835,7 +850,7 @@ function openWine(id,over){
   const diff=w.price&&w.marketKRW?Math.round((w.marketKRW-w.price)/w.price*100):null;
   const logs=drinks.filter(d=>d.wineId===id).length;
   sheet(esc(title(w)),`<div data-detail="${esc(id)}" style="display:flex;flex-direction:column;gap:12px">
-    ${thumbs[id]?`<div class="detail-ph"><img src="${thumbs[id]}" alt=""></div>`:''}
+    ${thumbs[id]?`<div class="detail-ph"><img src="${thumbUrl(id)}" alt=""></div>`:''}
     <div class="hero"><span class="v">${w.vintage?esc(w.vintage):'NV'}</span><span class="w-meta"><span class="chip" style="min-height:28px;padding:2px 10px"><span class="dot" style="background:${styleVar(w.style)}"></span>${esc(w.style||'')}</span>${st?`<span class="pill ${st[1]}">${st[0]}</span>`:''}<span>${Math.max(0,w.qty||0)}병 보유</span></span></div>
     <div class="acts three">
       <button type="button" class="btn primary" data-act="drink" data-id="${esc(id)}" ${(w.qty||0)>0?'':'disabled'}>마시기</button>

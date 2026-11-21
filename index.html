@@ -192,7 +192,10 @@ nav a[aria-current=page]{color:var(--accent);border-top-color:var(--accent);font
 .scan .hint:has(#scan-status:empty){display:none}
 /* 등록·저장 버튼은 화면 아래에 따로 띠로 두어 스크롤과 상관없이 항상 보이게 한다 */
 .savebar{grid-column:1/-1;position:sticky;bottom:0;z-index:3;margin:4px -16px 0;padding:10px 16px calc(12px + env(safe-area-inset-bottom));background:var(--surface);border-top:1px solid var(--line);box-shadow:0 -8px 14px -12px rgba(0,0,0,.4)}
-.savebar .btn{width:100%}
+.savebar{display:flex;gap:8px}
+.savebar .btn{flex:2 1 0;min-width:0;width:auto}
+.savebar .more-cam{flex:1 1 0;display:flex;align-items:center;justify-content:center;gap:5px;padding:10px 4px;font-size:13px;white-space:nowrap;background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:600}
+.savebar .more-cam svg{width:17px;height:17px;flex:none}
 .sheet-body:has(.savebar){padding-bottom:0}
 .bar5{flex:1;min-width:0;display:flex;gap:6px}
 .bar5 .btn{flex:1 1 0;min-width:0;padding:8px 2px;font-size:13px;white-space:nowrap}
@@ -441,6 +444,9 @@ const title=w=>[w.producer,w.name&&w.name!==w.producer?w.name:''].filter(Boolean
 let loaded=true;
 let wines=[],drinks=[],incoming=[]; /* incoming: 사 두고 도착을 기다리는 와인(입고예정) */
 const F={q:'',style:'',country:'',grape:'',band:'',loc:'',state:'',sort:'recent',empty:false};
+/* 조회 조건은 새로고침(화면을 당겨 내리기)해도 유지한다. 앱을 완전히 닫았다 열면 처음 상태로 돌아간다 */
+try{const f=JSON.parse(sessionStorage.getItem('cellar.filter')||'null');if(f&&typeof f==='object')for(const k of Object.keys(F))if(typeof f[k]===typeof F[k])F[k]=f[k]}catch(_){}
+function keepFilter(){try{sessionStorage.setItem('cellar.filter',JSON.stringify(F))}catch(_){}}
 const LOCS=['삼성셀러','매직쉐프셀러','거실옷장','삼각창고','기타 장소'];
 /* 외부창고는 기타 장소로 합쳤다: 예전에 저장된 값도 옮긴다 */
 function mergeLocs(){let n=0;for(const w of wines){if(!w)continue;if(w.location==='외부창고'){w.location='기타 장소';n++}if(w.grape){const g=normGrapes(w.grape);if(g!==w.grape){w.grape=g;n++}}if(w.region){const r=regionEn(w.region);if(r!==w.region){w.region=r;n++}}}return n}
@@ -516,7 +522,7 @@ const thumbs={};let imgStore=null;
 const photoKeys=id=>[id,id+'~2',id+'~3',id+'~4'];
 const photosOf=id=>photoKeys(id).filter(k=>thumbs[k]);
 let formPhotos=[],photosDirty=false; /* 등록·수정 화면에서 다루는 사진 목록 */
-function photosUI(){const el=$('#f-photos');if(!el)return;el.innerHTML=formPhotos.map((d,i)=>`<span class="ph1"><img src="${d}" alt="사진 ${i+1}"><button type="button" data-act="ph-del" data-i="${i}" aria-label="사진 ${i+1} 지우기">×</button></span>`).join('');el.hidden=!formPhotos.length}
+function photosUI(){const el=$('#f-photos');if(!el)return;el.innerHTML=formPhotos.map((d,i)=>`<span class="ph1"><img src="${d}" alt="사진 ${i+1}"><button type="button" data-act="ph-del" data-i="${i}" aria-label="사진 ${i+1} 지우기">×</button></span>`).join('');el.hidden=!formPhotos.length;const mc=$('#more-cam');if(mc)mc.hidden=!formPhotos.length||formPhotos.length>=4} /* 사진을 한 장 찍은 뒤에는 손이 닿는 아래쪽에 추가 촬영 버튼 */
 function savePhotos(id){const ks=photoKeys(id);ks.forEach((k,i)=>{if(formPhotos[i]){if(thumbs[k]!==formPhotos[i])imgPut(k,formPhotos[i])}else if(thumbs[k])imgDel(k)});formPhotos=[];photosDirty=false}
 function delPhotos(id){for(const k of photoKeys(id))if(thumbs[k])imgDel(k)}
 function imgTx(mode){return imgStore.transaction('t',mode).objectStore('t')}
@@ -700,6 +706,7 @@ function scoreLine(w,all){
   return(all?cs.map(fmt).join(''):top?fmt(top):'')+(w.vivino?`<span class="sc vv" title="Vivino 평점"><i>${all?'Vivino':'★'}</i>${Number(w.vivino).toFixed(1)}${all&&w.vivinoN?` (${Math.round(w.vivinoN).toLocaleString()}명)`:''}</span>`:'');
 }
 function renderCellar(){
+  keepFilter();if($('#q').value!==F.q&&document.activeElement!==$('#q'))$('#q').value=F.q;$('#sort').value=F.sort;$('#show-empty').checked=F.empty;
   renderChips();
   const cs=ranked([],w=>w.country);
   if(F.country&&!cs.includes(F.country))F.country='';
@@ -777,10 +784,10 @@ function openIncoming(id){
   const x=incoming.find(y=>y.id===id);if(!x)return closeSheet();
   const kv=(k,v)=>v||v===0?`<dt>${k}</dt><dd>${esc(v)}</dd>`:'';
   sheet(esc(inName(x)),`<div class="hero"><span class="v">${x.vintage?esc(x.vintage):'NV'}</span><span class="w-meta"><span class="pill wait">입고예정</span><span>${Math.max(0,x.qty||0)}병</span></span></div>
-    <div class="acts"><button type="button" class="btn primary" data-act="in-arrive" data-id="${esc(id)}">도착 · 셀러에 등록</button><button type="button" class="btn" data-act="in-edit" data-id="${esc(id)}">수정</button></div>
+    <div class="acts"><button type="button" class="btn primary" data-act="in-arrive" data-id="${esc(id)}">도착 · Cellars에 등록</button><button type="button" class="btn" data-act="in-edit" data-id="${esc(id)}">수정</button></div>
     <dl class="kv">${kv('구매처',x.store)}${kv('구매일',x.purchaseDate)}${kv('도착 예정일',x.eta)}${kv('병당 구매가',priceText(x))}${x.price?kv('합계',won(inAmt(x))):''}
       ${kv('산지',[withFlag(x.country),x.region].filter(Boolean).join(' · '))}${kv('마을 / 밭',x.appellation)}${kv('등급',x.classification)}${kv('품종',x.grape)}${kv('스타일',x.style)}${kv('용량',x.size?x.size+'ml':'')}${kv('메모',x.memo)}</dl>
-    <p class="hint">도착하면 "도착 · 셀러에 등록"을 눌러 보관 위치를 고르고 등록합니다. 일부만 도착했으면 수량을 줄여 등록하면 나머지는 입고예정에 남습니다.</p>
+    <p class="hint">도착하면 "도착 · Cellars에 등록"을 눌러 보관 위치를 고르고 등록합니다. 일부만 도착했으면 수량을 줄여 등록하면 나머지는 입고예정에 남습니다.</p>
     <div class="acts"><button type="button" class="btn danger" data-act="in-ask-del" data-id="${esc(id)}">입고예정에서 삭제</button></div>`);
 }
 /* 직구등록: 구매 내역 캡처를 올리면 AI가 읽어 항목을 만들고, 훑어본 뒤 확정하면 입고예정에 들어간다 */
@@ -968,7 +975,7 @@ function openForm(id,mode){
   if(mode==='arrive'&&!w.location)w.location=lastW.location||'';
   const edit=!mode&&!!id,pre=mode==='incoming'||mode==='draft'; /* pre: 아직 도착 전이라 사진·보관 위치가 없다 */
   const cur=w.currency||(w.price?'KRW':ranked(CURS,curOf)[0]);
-  sheet(mode==='incoming'?(id?'입고예정 수정':'직구 등록'):mode==='draft'?'직구 항목 수정':mode==='arrive'?'도착한 와인 셀러에 등록':id?'와인 수정':'와인 추가',`
+  sheet(mode==='incoming'?(id?'입고예정 수정':'직구 등록'):mode==='draft'?'직구 항목 수정':mode==='arrive'?'도착한 와인 Cellars에 등록':id?'와인 수정':'와인 추가',`
     ${pre?'':`<div class="scan">
       <div id="f-photos" class="phs" hidden></div>
       <div class="pvw">
@@ -1013,7 +1020,7 @@ function openForm(id,mode){
       <datalist id="dl-country">${ranked(COUNTRIES,w=>w.country).map(c=>`<option value="${esc(c)}">`).join('')}</datalist>
       <datalist id="dl-class">${ranked(CLASSES,w=>w.classification).map(c=>`<option value="${esc(c)}">`).join('')}</datalist>
       ${edit||pre?'':`<p class="hint full" style="grid-column:1/-1">${getCfg().key?'등록하면 AI가 와인 해설과 추정 시세를 자동으로 붙입니다.':'설정에 API 키를 넣어 두면 등록한 와인에 AI 해설과 추정 시세가 자동으로 붙습니다.'}</p>`}
-      <div class="savebar"><button type="submit" class="btn primary" id="save-wine">${mode==='incoming'?(id?'저장':'입고예정에 등록'):mode==='draft'?'적용':edit?'저장':'셀러에 등록'}</button></div>
+      <div class="savebar"><button type="submit" class="btn primary" id="save-wine">${mode==='incoming'?(id?'저장':'입고예정에 등록'):mode==='draft'?'적용':edit?'저장':'Cellars에 등록'}</button>${edit||pre?'':`<button type="button" class="btn more-cam" id="more-cam" data-act="shoot" hidden><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.5"/></svg>라벨 추가 촬영</button>`}</div>
     </form>`);
   photosUI();
   fxUI();
@@ -1627,7 +1634,7 @@ $('#sheet').addEventListener('change',async e=>{
   if(e.target.id==='m-location'){const w=$('#m-newloc-wrap');w.hidden=e.target.value!=='__new';if(!w.hidden)$('#m-newloc').focus();return}
   if(e.target.id==='f-cur'){const fx=$('#f-fx');fx.value='';fx.dataset.src='';fx.dataset.date='';fxUI();loadRate();return}
   if(e.target.id==='f-grape-pick'){const g=e.target.value;if(g){const el=$('#f-grape');const have=el.value.split(',').map(x=>x.trim()).filter(Boolean);if(!have.includes(g))have.push(g);el.value=have.join(', ')}e.target.value='';return}
-  if(e.target.name==='f-now'){$('#save-wine').textContent=e.target.value?'등록하고 시음 기록 쓰기':'셀러에 등록';return}
+  if(e.target.name==='f-now'){$('#save-wine').textContent=e.target.value?'등록하고 시음 기록 쓰기':'Cellars에 등록';return}
   if(e.target.id==='f-location'){const w=$('#newloc-wrap');w.hidden=e.target.value!=='__new';if(!w.hidden)$('#f-newloc').focus()}});
 $('#show-empty').addEventListener('change',e=>{F.empty=e.target.checked;renderCellar()});
 $('#style-chips').addEventListener('click',e=>{const b=e.target.closest('[data-style]');if(b){F.style=b.dataset.style;renderCellar()}});

@@ -385,6 +385,7 @@ nav a svg{width:22px;height:22px}
         </select>
         <select id="sort" aria-label="정렬">
           <option value="recent">최근 등록순</option>
+          <option value="changed">정보 변경순</option>
           <option value="vintage">빈티지 오래된 순</option>
           <option value="price">구매가 높은 순</option>
           <option value="mktdesc">현재 시세 높은 순</option>
@@ -514,7 +515,7 @@ try{const d=JSON.parse(localStorage.getItem(KEY)||'{}');wines=Array.isArray(d.wi
 if(mergeLocs())persist();
 if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{});
 function newId(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
-async function put(col,id,data){const arr=col==='wines'?wines:drinks;const row={...data,id};const i=arr.findIndex(x=>x.id===id);if(i>=0)arr[i]=row;else arr.push(row);persist();render()}
+async function put(col,id,data){const arr=col==='wines'?wines:drinks;const row={...data,id};if(col==='wines')row.updatedAt=Date.now(); /* 정보 변경순 정렬에 쓴다 */const i=arr.findIndex(x=>x.id===id);if(i>=0)arr[i]=row;else arr.push(row);persist();render()}
 async function del(col,id){if(col==='wines')wines=wines.filter(x=>x.id!==id);else drinks=drinks.filter(x=>x.id!==id);persist();render()}
 /* label photos: small thumbnails kept in IndexedDB on this phone */
 const thumbs={};let imgStore=null;
@@ -734,6 +735,7 @@ function renderCellar(){
   const big=1e15;
   const sorters={
     recent:(a,b)=>(b.createdAt||0)-(a.createdAt||0),
+    changed:(a,b)=>(b.updatedAt||b.createdAt||0)-(a.updatedAt||a.createdAt||0),
     vintage:(a,b)=>(vintNum(a)||big)-(vintNum(b)||big),
     price:(a,b)=>(b.price||0)-(a.price||0),
     mktdesc:(a,b)=>(b.marketKRW||-1)-(a.marketKRW||-1),
@@ -757,7 +759,7 @@ function renderCellar(){
       <span class="w-main"><span class="w-top"><span class="w-vint${w.vintage?'':' nv'}">${w.vintage?esc(w.vintage):'NV'}</span>${st&&!out?`<span class="pill ${st[1]}">${st[0]}</span>`:''}${aiStatus(w)?`<span class="pill ai">AI 해설 ${aiStatus(w)}</span>`:''}${w.location?`<span class="w-loc">${esc(locText(w))}</span>`:''}${scoreLine(w)?`<span class="w-sc">${scoreLine(w)}</span>`:''}</span>
         <span class="w-name">${esc(title(w))}</span>
         ${sub?`<span class="w-sub">${esc(sub)}</span>`:''}
-        ${w.price||w.marketKRW?`<span class="w-meta">${w.price?`<span class="price">구매 ${won(w.price)}</span>`:''}${w.marketKRW?`<span class="price">시세 ${won(w.marketKRW)}</span>`:''}</span>`:''}
+        ${w.price||w.marketKRW?`<span class="w-meta">${(w.qty||0)>1?'<span class="price">병당</span>':''}${w.price?`<span class="price">구매 ${won(w.price)}</span>`:''}${w.marketKRW?`<span class="price">시세 ${won(w.marketKRW)}</span>`:''}</span>`:''}
       </span>
       <span class="w-qty">${Math.max(0,w.qty||0)}<small>병</small></span>
     </button>`}).join('');
@@ -1279,8 +1281,9 @@ function openWine(id,over){
     <dl class="kv">
       ${kv('산지',[withFlag(w.country),w.region].filter(Boolean).join(' · '))}${kv('마을 / 밭',w.appellation)}${kv('등급',w.classification)}${kv('품종',w.grape)}
       ${kv('용량',w.size?w.size+'ml':'')}${kv('시음 적기',win)}${kv('보관 위치',locText(w))}
-      ${w.price||w.price===0?`<dt>구매가</dt><dd>${esc(priceText(w))}${w.fxRate?`<br><span class="hint">환율 ${amt(w.fxRate*fxUnit(w.currency))}원 / ${fxUnit(w.currency)} ${esc(w.currency)} · ${esc(w.fxDate||'')}</span>`:''}</dd>`:''}${kv('구매처',w.store)}${kv('구매일',w.purchaseDate)}
-      ${w.marketKRW||w.marketOrig||w.marketUSD?`<dt>시세</dt><dd>${w.marketKRW?won(w.marketKRW):'원화 환산 없음'}${diff!==null?` · 구매가 대비 ${diff>=0?'+':''}${diff}%`:''}<br><span class="hint">${esc([w.marketSrc?w.marketSrc+' 평균가':(w.aboutWeb?'웹 검색 기반':'AI 지식 기반 추정'),w.marketOrig&&w.marketCur&&w.marketCur!=='KRW'?`${CSYM[w.marketCur]||''}${amt(w.marketOrig)} ${w.marketCur}${w.marketSize?` (${w.marketSize}ml 가격) × ${amt(Math.round((w.size||750)/w.marketSize*100)/100)} (${w.size||750}ml 환산)`:''}${w.marketFx?' × 환율 '+amt(Math.round(w.marketFx*100)/100)+'원':''}`:(!w.marketOrig&&w.marketUSD?'해외 약 $'+Math.round(w.marketUSD).toLocaleString():''),w.marketAt,/avgKRW|마진|추정/.test(w.marketNote||'')?'':w.marketNote].filter(Boolean).join(' · '))}</span></dd>`:w.about&&!aiStatus(w)?`<dt>시세</dt><dd>찾지 못함<br><span class="hint">구매가 입력과는 관계없이, AI가 이 와인의 평균 시세를 찾지 못했습니다. 아래 "다시 받기"로 다시 시도할 수 있습니다.</span></dd>`:''}
+      ${w.price||w.price===0?`<dt>병당 구매가</dt><dd>${esc(priceText(w))}${w.fxRate?`<br><span class="hint">환율 ${amt(w.fxRate*fxUnit(w.currency))}원 / ${fxUnit(w.currency)} ${esc(w.currency)} · ${esc(w.fxDate||'')}</span>`:''}</dd>`:''}${kv('구매처',w.store)}${kv('구매일',w.purchaseDate)}
+      ${w.marketKRW||w.marketOrig||w.marketUSD?`<dt>병당 시세</dt><dd>${w.marketKRW?won(w.marketKRW):'원화 환산 없음'}${diff!==null?` · 구매가 대비 ${diff>=0?'+':''}${diff}%`:''}<br><span class="hint">${esc([w.marketSrc?w.marketSrc+' 평균가':(w.aboutWeb?'웹 검색 기반':'AI 지식 기반 추정'),w.marketOrig&&w.marketCur&&w.marketCur!=='KRW'?`${CSYM[w.marketCur]||''}${amt(w.marketOrig)} ${w.marketCur}${w.marketSize?` (${w.marketSize}ml 가격) × ${amt(Math.round((w.size||750)/w.marketSize*100)/100)} (${w.size||750}ml 환산)`:''}${w.marketFx?' × 환율 '+amt(Math.round(w.marketFx*100)/100)+'원':''}`:(!w.marketOrig&&w.marketUSD?'해외 약 $'+Math.round(w.marketUSD).toLocaleString():''),w.marketAt,/avgKRW|마진|추정/.test(w.marketNote||'')?'':w.marketNote].filter(Boolean).join(' · '))}</span></dd>`:w.about&&!aiStatus(w)?`<dt>시세</dt><dd>찾지 못함<br><span class="hint">구매가 입력과는 관계없이, AI가 이 와인의 평균 시세를 찾지 못했습니다. 아래 "다시 받기"로 다시 시도할 수 있습니다.</span></dd>`:''}
+      ${(w.qty||0)>1&&(w.price||w.marketKRW)?`<dt>${w.qty}병 합계</dt><dd>${[w.price?'구매 '+won(w.price*w.qty):'',w.marketKRW?'시세 '+won(w.marketKRW*w.qty):''].filter(Boolean).join(' · ')}</dd>`:''}
       ${kv('메모',w.memo)}${logs?kv('마신 기록',logs+'회'):''}
     </dl>
     ${(w.critics&&w.critics.length)||w.vivino?`<div class="scores">${scoreLine(w,true)}</div>`:''}
@@ -1475,7 +1478,7 @@ function askAllApply(){
     const c=askNorm(wines[i],it.changes);if(!Object.keys(c).length)continue;
     const upd={...wines[i],...c};
     if('price'in c){upd.priceOrig=c.price;upd.currency=c.price!=null?'KRW':'';upd.fxRate=null;upd.fxDate=''}
-    wines[i]=upd;n++;
+    upd.updatedAt=Date.now();wines[i]=upd;n++;
   }
   for(const id of refresh){const i=wines.findIndex(x=>x.id===id);if(i>=0)wines[i]={...wines[i],aiPending:true,aiTries:0,aiErr:''}}
   adds.forEach((a,i)=>{const w={qty:1,size:750,style:styleRank()[0],...a,id:newId()+i,createdAt:Date.now()+i,aiPending:true,aiTries:0,aiErr:''};if(w.price!=null){w.priceOrig=w.price;w.currency='KRW'}wines.push(w)});

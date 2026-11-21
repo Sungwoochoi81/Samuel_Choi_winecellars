@@ -79,7 +79,7 @@ main{flex:1;overflow-y:auto;padding:0 16px 20px;min-height:0}
 .w-qty small{font-family:var(--body);font-weight:400;font-size:11px;color:var(--muted);display:block}
 .wine.empty{opacity:.55}
 .pill{border-radius:999px;padding:2px 8px;font-size:11px;font-weight:600;border:1px solid currentColor}
-.pill.now{color:var(--good)} .pill.wait{color:var(--warn)} .pill.late{color:var(--bad)}
+.pill.ai{color:var(--accent)} .pill.now{color:var(--good)} .pill.wait{color:var(--warn)} .pill.late{color:var(--bad)}
 .price{color:var(--muted);font-variant-numeric:tabular-nums}
 
 .blank{background:var(--surface);border:1px dashed var(--line);border-radius:12px;padding:28px 18px;text-align:center;color:var(--muted)}
@@ -474,7 +474,7 @@ function renderCellar(){
       <span class="thumb" style="--c:${styleVar(w.style)}">${imgTag(w.id)||GLASS}</span>
       <span class="w-main"><span class="w-vint${w.vintage?'':' nv'}">${w.vintage?esc(w.vintage):'NV'}</span><span class="w-name">${esc(title(w))}</span>
         ${sub?`<span class="w-sub">${esc(sub)}</span>`:''}
-        <span class="w-meta">${st&&!out?`<span class="pill ${st[1]}">${st[0]}</span>`:''}${w.price?`<span class="price">${won(w.price)}</span>`:''}${w.location?`<span class="price">${esc(locText(w))}</span>`:''}</span>
+        <span class="w-meta">${aiStatus(w)?`<span class="pill ai">AI 해설 ${aiStatus(w)}</span>`:''}${st&&!out?`<span class="pill ${st[1]}">${st[0]}</span>`:''}${w.price?`<span class="price">${won(w.price)}</span>`:''}${w.location?`<span class="price">${esc(locText(w))}</span>`:''}</span>
       </span>
       <span class="w-qty">${Math.max(0,w.qty||0)}<small>병</small></span>
     </button>`}).join('');
@@ -569,7 +569,7 @@ function openForm(id){
       <datalist id="dl-country">${ranked(COUNTRIES,w=>w.country).map(c=>`<option value="${esc(c)}">`).join('')}</datalist>
       <datalist id="dl-class">${ranked(CLASSES,w=>w.classification).map(c=>`<option value="${esc(c)}">`).join('')}</datalist>
       <div class="field full"><button type="submit" class="btn primary" id="save-wine">${id?'저장':'셀러에 등록'}</button>
-      ${id?'':'<p class="hint">등록하면 AI가 와인 해설과 추정 시세를 자동으로 붙입니다.</p>'}</div>
+      ${id?'':`<p class="hint">${getCfg().key?'등록하면 AI가 와인 해설과 추정 시세를 자동으로 붙입니다.':'설정에 API 키를 넣어 두면 등록한 와인에 AI 해설과 추정 시세가 자동으로 붙습니다.'}</p>`}</div>
     </form>`);
   fxUI();
   if($('#f-cur').value!=='KRW'&&!$('#f-fx').value)loadRate();
@@ -639,19 +639,63 @@ async function saveWine(form){
     appellation:v('f-appellation'),classification:v('f-class'),grape:v('f-grape'),size:num(v('f-size'))||750,qty:Math.max(0,Math.round(num(v('f-qty'))??1)),
     price,priceOrig:orig,currency:orig!=null?cur:'',fxRate,fxDate,purchaseDate:v('f-pdate'),store:v('f-store'),location:v('f-location')==='__new'?v('f-newloc'):v('f-location'),slot:v('f-slot'),tags:v('f-tags'),
     drinkFrom:num(v('f-from')),drinkTo:num(v('f-to')),memo:$('#f-memo').value.trim(),createdAt:old.createdAt||Date.now()};
+  if(!id){w.aiPending=true;w.aiTries=0;w.aiErr=''} /* 새로 등록한 와인만 AI 해설을 자동으로 받는다 */
   const btn=$('#save-wine');btn.disabled=true;
   const wid=id||newId();
   try{await put('wines',wid,w)}catch(e){btn.disabled=false;toast(e&&e.code==='quota_exceeded'?'저장 공간이 가득 찼습니다.':'저장하지 못했습니다. 다시 시도해 주세요.');return}
   if(pendingThumb){imgPut(wid,pendingThumb);pendingThumb=null;render()}
   if(id){openWine(wid)}
-  else{closeSheet();toast('셀러에 등록했습니다.');if(getCfg().key)enrich(wid,w,true)}
+  else{
+    closeSheet();
+    toast(!getCfg().key?'셀러에 등록했습니다. 설정에 API 키를 넣으면 AI 해설이 자동으로 붙습니다.':navigator.onLine===false?'셀러에 등록했습니다. 인터넷에 연결되면 AI 해설이 자동으로 붙습니다.':'셀러에 등록했습니다. AI 해설을 작성하는 중입니다…');
+    queueAi(wid);
+  }
+}
+
+/* ---------- AI 해설 자동 등록 ----------
+   새로 등록한 와인(aiPending)만 대기열에 넣어 한 병씩 처리한다. 이전부터 있던 와인은 건드리지 않는다.
+   앱을 닫거나 연결이 끊겨 못 붙인 새 와인은
+   앱을 다시 열 때, 인터넷이 돌아올 때, API 키를 저장할 때 자동으로 이어서 처리한다. */
+const aiQ=[];let aiBusy=false,aiNow=null,aiBlocked=false;
+const AI_STOP=['no_key','bad_key','bad_model','network','rate_limited'];
+const needsAi=w=>!!(w&&w.aiPending&&(w.aiTries||0)<3);
+const aiStatus=w=>aiNow===w.id?'작성 중':aiQ.includes(w.id)?'대기 중':'';
+function refreshDetail(id){const o=$('#sheet [data-detail]');if(o&&(!id||o.dataset.detail===id))openWine(o.dataset.detail)}
+function queueAi(id){
+  if(!getCfg().key||aiBlocked||navigator.onLine===false)return;
+  if(!needsAi(wines.find(x=>x.id===id)))return;
+  if(!aiQ.includes(id))aiQ.push(id);
+  runAi();
+}
+function sweepAi(){
+  if(!getCfg().key||aiBlocked||navigator.onLine===false)return;
+  for(const w of wines)if(needsAi(w)&&!aiQ.includes(w.id))aiQ.push(w.id);
+  runAi();
+}
+async function runAi(){
+  if(aiBusy)return;aiBusy=true;
+  try{
+    while(aiQ.length){
+      const id=aiQ[0];aiNow=id;render();refreshDetail(id);
+      const code=await enrich(id,true);
+      aiNow=null;aiQ.shift();
+      if(AI_STOP.includes(code)){
+        aiQ.length=0;
+        if(code==='network'||code==='rate_limited'){toast('AI 해설을 아직 붙이지 못했습니다. '+aiMsg({code})+' 나중에 자동으로 다시 시도합니다.');if(code==='rate_limited')setTimeout(sweepAi,90000)}
+        else{aiBlocked=true;toast('AI 해설을 붙이지 못했습니다. '+aiMsg({code}))}
+      }else if(code&&code!=='gone'&&code!=='empty'){
+        const w=wines.find(x=>x.id===id);
+        if(w)await put('wines',id,{...w,aiTries:(w.aiTries||0)+1,aiErr:aiMsg({code})});
+      }
+    }
+  }finally{aiBusy=false;aiNow=null;render();refreshDetail()}
 }
 
 /* 와인 해설 + 시세: 웹 검색을 켜면 실제 매체를 찾아 요약 */
-async function enrich(id,base,quiet){
+async function enrich(id,auto){
   const cfg=getCfg();
-  if(!cfg.key){toast(aiMsg({code:'no_key'}));return}
-  const w=base||wines.find(x=>x.id===id);if(!w)return;
+  if(!cfg.key){if(!auto)toast(aiMsg({code:'no_key'}));return'no_key'}
+  const w=wines.find(x=>x.id===id);if(!w)return'gone';
   const info={producer:w.producer,name:w.name,vintage:w.vintage||'NV',style:w.style,country:w.country,region:w.region,appellation:w.appellation,classification:w.classification,grape:w.grape,size_ml:w.size};
   const how=cfg.web
     ?'웹 검색으로 Wine-Searcher, Vivino, Decanter, Wine Spectator, 생산자 공식 사이트 같은 와인 전문 자료에서 이 와인을 찾아 확인하라. 찾은 내용만 근거로 삼고, 문장을 베끼지 말고 직접 요약하라. 찾지 못한 값은 null로 둔다.'
@@ -666,18 +710,20 @@ async function enrich(id,base,quiet){
  "avgKRW": 한국 소매 기준 예상 가격(원 숫자) 또는 null,
  "confidence": "높음"|"보통"|"낮음",
  "note": 가격의 근거나 주의점 한국어 한 문장}`;
-  if(!quiet)toast(cfg.web?'웹에서 와인 정보를 찾는 중입니다. 1분쯤 걸릴 수 있습니다…':'AI 해설과 시세를 받는 중입니다…');
+  if(!auto)toast(cfg.web?'웹에서 와인 정보를 찾는 중입니다. 1분쯤 걸릴 수 있습니다…':'AI 해설과 시세를 받는 중입니다…');
   try{
     const out=await callClaude(prompt,cfg.web);
     const r=parseJSON(out.text);
-    const cur=wines.find(x=>x.id===id);if(!cur)return;
-    const upd={...cur,about:r.about||cur.about||'',pairing:r.pairing||cur.pairing||'',marketKRW:num(r.avgKRW),marketUSD:num(r.avgUSD),marketConf:r.confidence||'',marketNote:r.note||'',marketAt:today(),aboutWeb:!!cfg.web,sources:cfg.web?out.sources:[]};
+    const cur=wines.find(x=>x.id===id);if(!cur)return'gone';
+    const upd={...cur,aiPending:false,aiTries:0,aiErr:r.about?'':'이 와인의 정보를 찾지 못했습니다.',about:r.about||cur.about||'',pairing:r.pairing||cur.pairing||'',marketKRW:num(r.avgKRW),marketUSD:num(r.avgUSD),marketConf:r.confidence||'',marketNote:r.note||'',marketAt:today(),aboutWeb:!!cfg.web,sources:cfg.web?out.sources:[]};
     if(!cur.drinkFrom&&num(r.drinkFrom))upd.drinkFrom=num(r.drinkFrom);
     if(!cur.drinkTo&&num(r.drinkTo))upd.drinkTo=num(r.drinkTo);
     await put('wines',id,upd);
-    toast('와인 해설과 시세를 붙였습니다.');
-    const open=$('#sheet [data-detail]');if(open&&open.dataset.detail===id)openWine(id);
-  }catch(e){toast(aiMsg(e))}
+    if(r.about)toast(auto?`${title(upd)} 해설과 시세를 붙였습니다.`:'와인 해설과 시세를 붙였습니다.');
+    else if(!auto)toast('이 와인의 정보를 찾지 못했습니다.');
+    if(!auto)refreshDetail(id);
+    return r.about?'':'empty';
+  }catch(e){if(!auto)toast(aiMsg(e));return(e&&e.code)||'api'}
 }
 
 function openWine(id,over){
@@ -693,6 +739,10 @@ function openWine(id,over){
       <button type="button" class="btn primary" data-act="drink" data-id="${esc(id)}" ${(w.qty||0)>0?'':'disabled'}>마시기</button>
       <button type="button" class="btn" data-act="edit" data-id="${esc(id)}">수정</button>
     </div>
+    ${aiStatus(w)?`<div class="about"><small>AI 해설 ${aiStatus(w)}</small>AI가 이 와인의 해설과 시세를 ${aiNow===id?'찾고 있습니다':'곧 찾습니다'}. 끝나면 여기에 자동으로 붙습니다.</div>`
+      :w.about||!w.aiPending?'':!getCfg().key?'<p class="hint">설정에 API 키를 넣으면 이 와인의 AI 해설과 시세가 자동으로 붙습니다.</p>'
+      :(w.aiTries||0)>=3?`<p class="hint">AI 해설을 자동으로 붙이지 못했습니다. ${esc(w.aiErr||'')} 아래 버튼으로 다시 시도할 수 있습니다.</p>`
+      :'<p class="hint">AI 해설이 아직 없습니다. 인터넷에 연결되면 자동으로 붙습니다.</p>'}
     ${w.about?`<div class="about"><small>${w.aboutWeb?'AI 해설 (웹 검색 결과를 요약)':'AI 해설 (AI 지식 기반)'}</small>${esc(w.about)}${w.pairing?'\n\n페어링: '+esc(w.pairing):''}</div>`:''}
     ${w.sources&&w.sources.length?`<div class="hint">출처·검색 결과<br>${w.sources.map(x=>/^https?:\/\//.test(x.url)?`<a class="ext" style="font-size:12px" href="${esc(x.url)}" target="_blank" rel="noopener">${esc(String(x.title).slice(0,60))} ↗</a>`:'').join('<br>')}</div>`:''}
     <dl class="kv">
@@ -849,7 +899,7 @@ $('#sheet').addEventListener('click',async e=>{
   else if(a==='pick')$('#f-file').click();
   else if(a==='edit')openForm(id);
   else if(a==='drink')openDrink(id);
-  else if(a==='enrich'){b.disabled=true;await enrich(id);if(b.isConnected)b.disabled=false}
+  else if(a==='enrich'){if(aiNow===id||aiQ.includes(id)){toast('이미 AI 해설을 작성하는 중입니다.');return}b.disabled=true;await enrich(id);if(b.isConnected)b.disabled=false}
   else if(a==='ask-del-wine'){const w=wines.find(x=>x.id===id);sheet('와인 삭제',`<p>${esc(w?title(w):'')}을(를) 셀러에서 삭제합니다. 마신 기록은 남습니다.</p><div class="acts"><button type="button" class="btn" data-act="back-wine" data-id="${esc(id)}">취소</button><button type="button" class="btn danger" data-act="del-wine" data-id="${esc(id)}">삭제</button></div>`)}
   else if(a==='back-wine')openWine(id);
   else if(a==='del-wine'){try{await del('wines',id);imgDel(id);closeSheet();toast('삭제했습니다.')}catch(_){toast('삭제하지 못했습니다.')}}
@@ -862,10 +912,10 @@ $('#sheet').addEventListener('click',async e=>{
       closeSheet();toast('기록을 삭제했습니다.');
     }catch(_){toast('삭제하지 못했습니다.')}
   }
-  else if(a==='save-cfg'){setCfg({key:$('#c-key').value.trim(),model:$('#c-model').value.trim()||DEF.model,web:$('#c-web').checked});closeSheet();render();toast('설정을 저장했습니다.')}
+  else if(a==='save-cfg'){setCfg({key:$('#c-key').value.trim(),model:$('#c-model').value.trim()||DEF.model,web:$('#c-web').checked});closeSheet();render();toast('설정을 저장했습니다.');aiBlocked=false;sweepAi()}
   else if(a==='export'){download('wine-cellar-'+today()+'.json',JSON.stringify({app:'wine-cellar',version:1,exportedAt:new Date().toISOString(),wines,drinks,photos:thumbs}),'application/json');toast('백업 파일을 저장했습니다.')}
   else if(a==='import-pick')$('#c-import').click();
-  else if(a==='do-import'){if(pendingImport){wines=pendingImport.wines;drinks=pendingImport.drinks;imgReplace(pendingImport.photos);pendingImport=null;persist();closeSheet();render();toast('백업을 불러왔습니다.')}}
+  else if(a==='do-import'){if(pendingImport){wines=pendingImport.wines;drinks=pendingImport.drinks;imgReplace(pendingImport.photos);pendingImport=null;persist();closeSheet();render();toast('백업을 불러왔습니다.');sweepAi()}}
   else if(a==='dl-csv'){download('wine-cellar-'+today()+'.csv','﻿'+csv(),'text/csv');toast('CSV 파일을 저장했습니다.')}
   else if(a==='copy-csv'){const t=$('#csv-out');try{await navigator.clipboard.writeText(t.value);toast('복사했습니다.')}catch(_){t.focus();t.select();toast('전체 선택했습니다. 길게 눌러 복사해 주세요.')}}
 });
@@ -873,6 +923,9 @@ $('#sheet').addEventListener('change',e=>{if(e.target.id==='f-cam'||e.target.id=
 $('#sheet').addEventListener('submit',e=>{e.preventDefault();if(e.target.id==='wine-form')saveWine(e.target);else if(e.target.id==='drink-form')saveDrink(e.target);else if(e.target.id==='move-form')saveMove(e.target)});
 render();
 imgInit();
+sweepAi();
+window.addEventListener('online',sweepAi);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')sweepAi()});
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script>
 </body>

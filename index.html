@@ -342,6 +342,14 @@ h1{font-size:19px;font-weight:700;white-space:nowrap;letter-spacing:-.02em}
 .nopt input{width:18px;height:18px;margin:2px 0 0;flex:none;accent-color:var(--accent)}
 .nopt span{min-width:0;display:flex;flex-direction:column;gap:1px;overflow-wrap:anywhere}
 .nopt small{font-size:11.5px;color:var(--muted)}
+.pv-wrap{position:relative;margin:0 -16px;background:#0f1110}
+.pv-gal{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}
+.pv-gal::-webkit-scrollbar{display:none}
+.pv-gal figure{flex:none;width:100%;margin:0;scroll-snap-align:center;display:grid;place-items:center;height:min(64vh,560px)}
+.pv-gal img{max-width:100%;max-height:100%;object-fit:contain;display:block}
+.pv-n{position:absolute;right:12px;bottom:10px;background:rgba(0,0,0,.55);color:#fff;font-size:12px;border-radius:999px;padding:3px 10px;font-variant-numeric:tabular-nums}
+#list .thumb{cursor:zoom-in}
+.detail-ph,.detail-gal{cursor:zoom-in}
 .scores{display:flex;flex-wrap:wrap;gap:6px}
 .hero-sc{display:inline-flex;gap:8px;align-items:center}
 .hero-sc .sc{font-size:13px}
@@ -570,7 +578,7 @@ function imgDel(id){delete thumbs[id];try{if(imgStore)imgTx('readwrite').delete(
 function imgReplace(map){for(const k of Object.keys(thumbs))delete thumbs[k];try{if(imgStore){const st=imgTx('readwrite');st.clear();for(const[k,v]of Object.entries(map||{})){thumbs[k]=v;st.put(v,k)}}else Object.assign(thumbs,map||{})}catch(_){}}
 function makeThumb(file){return new Promise((res,rej)=>{
   const u=URL.createObjectURL(file),im=new Image();
-  im.onload=()=>{const k=Math.min(1,480/Math.max(im.width,im.height));const c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);res(c.toDataURL('image/jpeg',.72))};
+  im.onload=()=>{const k=Math.min(1,900/Math.max(im.width,im.height));const c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);res(c.toDataURL('image/jpeg',.72))};
   im.onerror=()=>{URL.revokeObjectURL(u);rej({code:'image_rejected'})};im.src=u})}
 /* 새 와인을 등록할 때는 사진을 여러 장(앞 라벨, 뒷 라벨, 병목 등) 모아 한꺼번에 읽는다. 저장되는 사진은 첫 장이다 */
 let scanImgs=[],scanSeq=0;
@@ -810,6 +818,16 @@ function renderCellar(){
 }
 /* 묶인 와인의 보관 위치별 병수: 많은 곳부터 */
 function locSplit(g){const m={};for(const x of g){const l=x.location||'미지정';m[l]=(m[l]||0)+Math.max(0,x.qty||0)}return Object.entries(m).sort((a,b)=>b[1]-a[1])}
+/* 사진 크게 보기: 와인에 저장된 사진들을 옆으로 넘겨 본다. ids는 쉼표로 이은 와인 id (묶인 와인은 여러 개) */
+function openPhotos(ids){
+  const list=String(ids).split(',').map(i=>wines.find(x=>x.id===i)).filter(Boolean),ks=list.flatMap(w=>photosOf(w.id));
+  if(!ks.length)return closeSheet();
+  const w=list[0];
+  sheet(esc((w.vintage?w.vintage+' ':'')+title(w)),`<div class="pv-wrap"><div class="pv-gal" id="pv-gal">${ks.map((k,i)=>`<figure><img src="${thumbUrl(k)}" alt="사진 ${i+1}"></figure>`).join('')}</div>
+    ${ks.length>1?`<div class="pv-n" id="pv-n">1 / ${ks.length}</div>`:''}</div>
+    <div class="acts"><button type="button" class="btn" data-act="open-wine" data-id="${esc(w.id)}">와인 정보 보기</button><button type="button" class="btn" data-act="edit" data-id="${esc(w.id)}">사진 추가·삭제</button></div>`);
+  const g=$('#pv-gal'),n=$('#pv-n');if(g&&n)g.addEventListener('scroll',()=>{n.textContent=(Math.round(g.scrollLeft/g.clientWidth)+1)+' / '+ks.length},{passive:true});
+}
 function openGroup(key){
   const g=wines.filter(x=>sameKey(x)===key).sort((a,b)=>Math.max(0,b.qty||0)-Math.max(0,a.qty||0)||(b.createdAt||0)-(a.createdAt||0));
   if(!g.length)return closeSheet();
@@ -1438,7 +1456,7 @@ function openWine(id,over){
   const ord=wineOrder(id),pos=ord.indexOf(id);
   sheet(esc(title(w)),`<div data-detail="${esc(id)}" style="display:flex;flex-direction:column;gap:12px">
     ${ord.length>1?`<div class="pager"><button type="button" data-act="wine-prev" aria-label="이전 와인" ${pos<=0?'disabled':''}>‹</button><span>${pos+1} / ${ord.length} · 옆으로 밀어 넘기기</span><button type="button" data-act="wine-next" aria-label="다음 와인" ${pos>=ord.length-1?'disabled':''}>›</button></div>`:''}
-    ${photosOf(id).length>1?`<div class="detail-gal">${photosOf(id).map((k,i)=>`<img src="${thumbUrl(k)}" alt="사진 ${i+1}">`).join('')}</div>`:thumbs[id]?`<div class="detail-ph"><img src="${thumbUrl(id)}" alt=""></div>`:''}
+    ${photosOf(id).length>1?`<div class="detail-gal" data-act="photos" data-id="${esc(id)}">${photosOf(id).map((k,i)=>`<img src="${thumbUrl(k)}" alt="사진 ${i+1}">`).join('')}</div>`:thumbs[id]?`<div class="detail-ph" data-act="photos" data-id="${esc(id)}"><img src="${thumbUrl(id)}" alt="사진 크게 보기"></div>`:''}
     <div class="hero"><span class="v">${w.vintage?esc(w.vintage):'NV'}</span><span class="w-meta"><span class="chip" style="min-height:28px;padding:2px 10px">${styleIcon(w.style)}${esc(w.style||'')}</span>${st?`<span class="pill ${st[1]}">${st[0]}</span>`:''}<span>${Math.max(0,w.qty||0)}병 보유</span>${scoreLine(w)?`<span class="hero-sc">${scoreLine(w)}</span>`:''}</span></div>
     ${justAdded===id?`<div class="added"><span class="added-t"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>셀러에 등록했습니다. 이어서 등록할까요?</span><div class="acts"><button type="button" class="btn go" data-act="add-more-cam"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.5"/></svg>라벨 촬영으로 등록</button><button type="button" class="btn" data-act="add-more">＋ 직접 입력</button></div></div>`:''}
     <div class="acts three">
@@ -1764,7 +1782,7 @@ function openSettings(){
 }
 
 /* 화면을 여는 함수마다 '다시 여는 방법'을 기록해 뒤로가기에서 쓴다 */
-for(const n of['openForm','openWine','openDrink','openPicker','openMove','openSettings','openAsk','openAskAll','openDirect','openReview','openIncoming','openBatch','openGroup','openNames']){
+for(const n of['openForm','openWine','openDrink','openPicker','openMove','openSettings','openAsk','openAskAll','openDirect','openReview','openIncoming','openBatch','openGroup','openNames','openPhotos']){
   const f=window[n];
   window[n]=function(...a){
     nextScr={key:n+':'+JSON.stringify(a.filter(x=>x===null||typeof x!=='object')),fn:(...b)=>window[n](...b),args:a.map(x=>x instanceof Event?undefined:x)};
@@ -1838,6 +1856,11 @@ document.querySelector('main').addEventListener('click',e=>{
     return}
   const g=e.target.closest('[data-goloc]');if(g){F.loc=g.dataset.goloc;F.state='';goCellar();return}
   if(e.target.id==='name-hint-btn'){openNames();return}
+  const th=e.target.closest('#list .thumb');
+  if(th){ /* 목록의 사진을 누르면 그 와인의 사진들을 크게 본다. 사진이 없으면 평소처럼 상세로 */
+    const row=th.closest('.wine'),ids=row.dataset.group?wines.filter(x=>sameKey(x)===row.dataset.group).map(x=>x.id):[row.dataset.wine];
+    if(ids.some(i=>photosOf(i).length)){openPhotos(ids.join(','));return}
+  }
   const gr=e.target.closest('[data-group]');if(gr){openGroup(gr.dataset.group);return}
   const w=e.target.closest('[data-wine]');if(w){openWine(w.dataset.wine);return}
   const d=e.target.closest('[data-drink]');if(d){openDrink(null,d.dataset.drink);return}
@@ -1861,6 +1884,7 @@ $('#sheet').addEventListener('click',async e=>{
   else if(a==='askall-again')openAskAll();
   else if(a==='askall-file')$('#askall-file').click();
   else if(a==='open-wine')openWine(id);
+  else if(a==='photos')openPhotos(id);
   else if(a==='names-open')openNames();
   else if(a==='names-apply')applyNames();
   else if(a==='batch-shoot')$('#batch-cam').click();

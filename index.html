@@ -300,6 +300,14 @@ h1{font-size:19px;font-weight:700;white-space:nowrap;letter-spacing:-.02em}
 .dup-n{margin:0;font-weight:600;overflow-wrap:anywhere}
 .dup-n small{font-weight:400;color:var(--muted)}
 .dup-box .btn{width:100%}
+.pager{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;margin-top:-4px}
+.pager button{width:40px;height:32px;border:1px solid var(--line);background:var(--surface);border-radius:999px;font-size:18px;line-height:1;padding:0;color:var(--ink)}
+.pager button:disabled{opacity:.35}
+.sheet-body.in-r{animation:inR .18s ease-out}
+.sheet-body.in-l{animation:inL .18s ease-out}
+@keyframes inR{from{transform:translateX(36px);opacity:.3}to{transform:none;opacity:1}}
+@keyframes inL{from{transform:translateX(-36px);opacity:.3}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){.sheet-body.in-r,.sheet-body.in-l{animation:none}}
 .scores{display:flex;flex-wrap:wrap;gap:6px}
 .hero-sc{display:inline-flex;gap:8px;align-items:center}
 .hero-sc .sc{font-size:13px}
@@ -708,6 +716,7 @@ function renderCellar(){
     window:(a,b)=>(a.drinkFrom||a.drinkTo||big)-(b.drinkFrom||b.drinkTo||big)
   };
   rows.sort(sorters[F.sort]||sorters.recent);
+  cellarOrder=rows.map(w=>w.id); /* 상세 화면에서 옆으로 넘길 때 따르는 순서 */
   const bottles=rows.reduce((s,w)=>s+Math.max(0,w.qty||0),0);
   $('#count').textContent=wines.length?`${bottles}병 · ${rows.length}종`:'';
   if(!wines.length){list.innerHTML='<div class="blank"><strong>아직 등록한 와인이 없습니다</strong>위의 ＋ 와인 추가를 눌러 라벨을 촬영하거나 직접 입력해 보세요.</div>';return}
@@ -1207,13 +1216,24 @@ async function enrich(id,auto){
   }catch(e){if(!auto)toast(aiMsg(e));return(e&&e.code)||'api'}
 }
 
+/* 상세 화면 넘기기: 셀러 목록에 보이던 순서대로 이전·다음 와인으로 간다. 목록에 없는 와인이면 최근 등록순 */
+let cellarOrder=[],swipeDir=0;
+function wineOrder(id){const o=cellarOrder.filter(x=>wines.some(w=>w.id===x));return o.includes(id)?o:[...wines].sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)).map(w=>w.id)}
+function stepWine(dir){
+  const d=$('#sheet [data-detail]');if(!d)return;
+  const o=wineOrder(d.dataset.detail),n=o[o.indexOf(d.dataset.detail)+dir];
+  if(!n){toast(dir>0?'마지막 와인입니다.':'첫 번째 와인입니다.');return}
+  sheetStack.pop();swipeDir=dir;openWine(n);
+}
 function openWine(id,over){
   const w=over||wines.find(x=>x.id===id);if(!w){closeSheet();return}
   const st=winState(w);const kv=(k,v)=>v||v===0?`<dt>${k}</dt><dd>${esc(v)}</dd>`:'';
   const win=w.drinkFrom||w.drinkTo?`${w.drinkFrom||''}~${w.drinkTo||''}`:'';
   const diff=w.price&&w.marketKRW?Math.round((w.marketKRW-w.price)/w.price*100):null;
   const logs=drinks.filter(d=>d.wineId===id).length;
+  const ord=wineOrder(id),pos=ord.indexOf(id);
   sheet(esc(title(w)),`<div data-detail="${esc(id)}" style="display:flex;flex-direction:column;gap:12px">
+    ${ord.length>1?`<div class="pager"><button type="button" data-act="wine-prev" aria-label="이전 와인" ${pos<=0?'disabled':''}>‹</button><span>${pos+1} / ${ord.length} · 옆으로 밀어 넘기기</span><button type="button" data-act="wine-next" aria-label="다음 와인" ${pos>=ord.length-1?'disabled':''}>›</button></div>`:''}
     ${photosOf(id).length>1?`<div class="detail-gal">${photosOf(id).map((k,i)=>`<img src="${thumbUrl(k)}" alt="사진 ${i+1}">`).join('')}</div>`:thumbs[id]?`<div class="detail-ph"><img src="${thumbUrl(id)}" alt=""></div>`:''}
     <div class="hero"><span class="v">${w.vintage?esc(w.vintage):'NV'}</span><span class="w-meta"><span class="chip" style="min-height:28px;padding:2px 10px">${styleIcon(w.style)}${esc(w.style||'')}</span>${st?`<span class="pill ${st[1]}">${st[0]}</span>`:''}<span>${Math.max(0,w.qty||0)}병 보유</span>${scoreLine(w)?`<span class="hero-sc">${scoreLine(w)}</span>`:''}</span></div>
     ${justAdded===id?`<div class="added"><span class="added-t"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>셀러에 등록했습니다. 이어서 등록할까요?</span><div class="acts"><button type="button" class="btn go" data-act="add-more-cam"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.5"/></svg>라벨 촬영으로 등록</button><button type="button" class="btn" data-act="add-more">＋ 직접 입력</button></div></div>`:''}
@@ -1242,6 +1262,10 @@ function openWine(id,over){
       <button type="button" class="btn" data-act="enrich" data-id="${esc(id)}">${w.about?'AI 해설·시세 다시 받기':'AI 해설·시세 받기'}</button>
       <button type="button" class="btn danger" data-act="ask-del-wine" data-id="${esc(id)}">삭제</button>
     </div></div>`);
+  if(swipeDir){ /* 넘겨서 들어온 경우: 아래에서 올라오는 대신 옆에서 미끄러져 들어온다 */
+    const sh=$('#sheet .sheet'),bd=$('#sheet .sheet-body');
+    if(sh)sh.style.animation='none';if(bd)bd.classList.add(swipeDir>0?'in-r':'in-l');swipeDir=0;
+  }
 }
 
 /* ---------- AI에게 시키기: 말로 지시하면 AI가 고칠 내용을 정리하고, 확인을 받은 뒤에만 저장한다 ---------- */
@@ -1545,6 +1569,12 @@ for(const n of['openForm','openWine','openDrink','openPicker','openMove','openSe
 /* ---------- events ---------- */
 $('#set-btn').addEventListener('click',()=>openSettings());
 $('#ai-btn').addEventListener('click',()=>openAskAll());
+/* 상세 화면에서 왼쪽으로 밀면 다음 와인, 오른쪽으로 밀면 이전 와인. 사진 묶음을 넘기는 동작과 위아래 스크롤은 건드리지 않는다 */
+let swipe0=null;
+$('#sheet').addEventListener('touchstart',e=>{swipe0=null;if(e.touches.length!==1||!$('#sheet [data-detail]')||e.target.closest('.detail-gal,input,textarea,select'))return;const t=e.touches[0];swipe0={x:t.clientX,y:t.clientY,t:Date.now()}},{passive:true});
+$('#sheet').addEventListener('touchend',e=>{if(!swipe0)return;const t=e.changedTouches[0],dx=t.clientX-swipe0.x,dy=t.clientY-swipe0.y,dt=Date.now()-swipe0.t;swipe0=null;if(Math.abs(dx)>=60&&Math.abs(dx)>Math.abs(dy)*1.8&&dt<800&&$('#sheet [data-detail]'))stepWine(dx<0?1:-1)},{passive:true});
+$('#sheet').addEventListener('touchcancel',()=>{swipe0=null},{passive:true});
+document.addEventListener('keydown',e=>{if($('#sheet').hidden||!$('#sheet [data-detail]')||/INPUT|TEXTAREA|SELECT/.test((e.target||{}).tagName||''))return;if(e.key==='ArrowRight')stepWine(1);else if(e.key==='ArrowLeft')stepWine(-1)});
 $('#direct-btn').addEventListener('click',()=>openDirect());
 $('#banner').addEventListener('click',()=>openSettings());
 window.addEventListener('hashchange',render);
@@ -1613,6 +1643,8 @@ $('#sheet').addEventListener('click',async e=>{
   else if(a==='ask-again')openAsk(id);
   else if(a==='askall-again')openAskAll();
   else if(a==='askall-file')$('#askall-file').click();
+  else if(a==='wine-prev')stepWine(-1);
+  else if(a==='wine-next')stepWine(1);
   else if(a==='ph-del'){const i=+b.dataset.i;formPhotos.splice(i,1);if(scanImgs.length>i)scanImgs.splice(i,1);photosDirty=true;photosUI();const c=$('#scan-count');if(c){c.textContent='사진 '+formPhotos.length+'장';c.hidden=!formPhotos.length}}
   else if(a==='dup-cancel')b.closest('.dup').remove();
   else if(a==='dup-merge'||a==='dup-new'){const f=$('#wine-form');b.closest('.dup').remove();if(f){f.dataset.dup=a==='dup-new'?'new':'merge:'+id;await saveWine(f);if(f.isConnected)delete f.dataset.dup}}

@@ -104,9 +104,49 @@ main{flex:1;overflow-y:auto;padding:0 16px 20px;min-height:0}
 .tile b{display:block;font-family:var(--display);font-size:22px;letter-spacing:-.02em;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
 .tile span{font-size:12px;color:var(--muted)}
 .panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px}
+.ch-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:6px}
+.ch-head h2{margin:0}
+.seg{display:flex;border:1px solid var(--line);border-radius:999px;padding:2px;background:var(--bg)}
+.seg button{border:0;background:none;border-radius:999px;padding:5px 12px;font-size:12px;min-height:30px;color:var(--muted);font-weight:600}
+.seg button[aria-pressed=true]{background:var(--surface);color:var(--ink);box-shadow:0 0 0 1px var(--line)}
+.ch-read{margin:0 0 6px;font-size:13px;color:var(--muted);min-height:20px;font-variant-numeric:tabular-nums}
+.ch-read b{color:var(--ink)}
+.ch-plot{display:flex;align-items:stretch;gap:2px;height:136px;border-bottom:1px solid var(--line)}
+.ch-col{flex:1;min-width:0;border:0;background:none;padding:0 1px;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:2px}
+.ch-val{flex:none;height:14px;line-height:14px;font-size:10.5px;color:var(--ink);font-weight:600;white-space:nowrap;font-variant-numeric:tabular-nums}
+.ch-area{flex:1;min-height:0;width:100%;display:flex;align-items:flex-end;justify-content:center}
+.ch-bar{display:block;width:100%;max-width:22px;background:var(--accent);border-radius:4px 4px 0 0;opacity:.82}
+.ch-col:hover .ch-bar,.ch-col.on .ch-bar{opacity:1}
+.ch-col.on{background:color-mix(in srgb,var(--accent) 9%,transparent);border-radius:6px 6px 0 0}
+.ch-x{display:flex;gap:2px;margin-top:3px}
+.ch-x span{flex:1;min-width:0;text-align:center;font-size:10px;color:var(--muted);line-height:1.2;white-space:nowrap}
+.ch-x i{display:block;font-style:normal;font-size:9px}
+.ch-table{margin-top:8px;font-size:13px}
+.ch-table summary{color:var(--muted);font-size:12px;padding:6px 0;cursor:pointer}
+.ch-table table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+.ch-table th,.ch-table td{text-align:right;padding:5px 4px;border-bottom:1px solid var(--line);font-weight:400}
+.ch-table th{color:var(--muted);font-size:12px}
+.ch-table th:first-child,.ch-table td:first-child{text-align:left}
+.panel>h2,.ch-head h2{letter-spacing:-.01em}
 .panel h2{font-size:14px;margin:0 0 10px;font-weight:600}
-.bar{display:grid;grid-template-columns:84px 1fr 34px;gap:8px;align-items:center;font-size:13px;margin:6px 0}
-.bar i{display:block;height:8px;border-radius:4px;background:var(--accent);min-width:2px}
+.bar{display:grid;grid-template-columns:92px 1fr 28px;gap:10px;align-items:center;font-size:13px;margin:8px 0}
+.bar .trk{display:block;height:6px;border-radius:3px;background:color-mix(in srgb,var(--ink) 7%,transparent);overflow:hidden}
+.bar i{display:block;height:100%;border-radius:3px;background:var(--accent);min-width:2px}
+.tiles.deep{gap:0;border-radius:18px;overflow:hidden;color:var(--card-ink);background:radial-gradient(110% 130% at 100% 0%,color-mix(in srgb,var(--gold) 30%,transparent) 0%,transparent 55%),linear-gradient(160deg,var(--card-a),var(--card-b));border:1px solid color-mix(in srgb,var(--gold) 28%,transparent);box-shadow:0 12px 26px -16px rgba(0,0,0,.55)}
+.tiles.deep .tile{background:none;border:0;border-radius:0;padding:12px 16px;display:flex;flex-direction:column;gap:1px;min-width:0}
+.tiles.deep .tile:nth-child(odd){border-right:1px solid rgba(255,255,255,.14)}
+.tiles.deep .tile:nth-child(n+3){border-top:1px solid rgba(255,255,255,.14)}
+.tiles.deep .tile span{font-size:11px;letter-spacing:.04em;color:var(--gold);font-weight:600}
+.tiles.deep .tile b{font-size:20px;font-weight:800;line-height:1.25}
+.tiles.deep .tile b small{font-size:13px;font-weight:600;margin-left:2px;opacity:.85}
+.tiles.deep .tile b.gold{color:var(--gold)}
+.tiles.deep .tile em{font-style:normal;font-size:11px;opacity:.75}
+.rlist{display:flex;flex-direction:column}
+.rlist button{display:flex;align-items:center;gap:10px;background:none;border:0;border-top:1px solid var(--line);padding:10px 2px;text-align:left;min-height:44px;width:100%}
+.rlist button:first-child{border-top:0}
+.rlist .rv{flex:none;font-weight:700;font-size:13px;color:var(--gold-ink);font-variant-numeric:tabular-nums;width:36px}
+.rlist .rn{flex:1;min-width:0;font-size:14px;overflow-wrap:anywhere}
+.panel{border-radius:16px}
 .bar span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .bar span:last-child{text-align:right;font-variant-numeric:tabular-nums;color:var(--muted)}
 
@@ -211,6 +251,8 @@ h1{font-size:19px;font-weight:700;white-space:nowrap;letter-spacing:-.02em}
 .w-vint,.w-vint.nv{width:auto;padding:0;font-size:13px;color:var(--gold-ink);font-weight:700;letter-spacing:0;font-family:inherit}
 .w-qty{padding:0 14px 0 0}
 /* 셀러 목록: 한 화면에 더 많은 와인이 보이도록 줄마다 한 줄로 줄여 촘촘하게 */
+#v-cellar .tools{position:sticky;top:0;z-index:4;background:var(--bg);margin:0 -16px;padding:0 16px 8px;border-bottom:1px solid var(--line);box-shadow:0 8px 12px -12px rgba(0,0,0,.35)}
+#v-cellar{gap:10px}
 #list{gap:6px}
 #list .wine{border-radius:12px;gap:10px;padding:7px 0 7px 8px}
 #list .thumb{width:40px;height:54px;border-radius:8px}
@@ -595,7 +637,33 @@ function renderHistory(){
 function tally(key){const m={};for(const w of wines){const q=Math.max(0,w.qty||0);if(!q)continue;const k=w[key]||'미분류';m[k]=(m[k]||0)+q}return Object.entries(m).sort((a,b)=>b[1]-a[1]).slice(0,7)}
 function bars(h,rows){
   if(!rows.length)return'';const max=rows[0][1];
-  return`<div class="panel"><h2>${h}</h2>${rows.map(([k,v])=>`<div class="bar"><span>${esc(k)}</span><i style="width:${Math.max(3,v/max*100)}%"></i><span>${v}</span></div>`).join('')}</div>`;
+  return`<div class="panel"><h2>${h}</h2>${rows.map(([k,v])=>`<div class="bar"><span>${esc(k)}</span><span class="trk"><i style="width:${Math.max(3,v/max*100)}%"></i></span><span>${v}</span></div>`).join('')}</div>`;
+}
+/* 월별 차트: 최근 12개월. 수량과 금액은 단위가 달라 한 차트에 겹치지 않고 전환해서 본다 */
+const CH={buy:'qty',use:'qty'};
+function monthKeys(){const out=[],d=new Date();d.setDate(1);for(let i=11;i>=0;i--){const x=new Date(d.getFullYear(),d.getMonth()-i,1);out.push(x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0'))}return out}
+const ymOf=(date,ts)=>/^\d{4}-\d{2}/.test(date||'')?date.slice(0,7):ts?(d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'))(new Date(ts)):'';
+function monthly(kind){
+  const ks=monthKeys(),m=Object.fromEntries(ks.map(k=>[k,{qty:0,amt:0}]));
+  if(kind==='buy'){ /* 산 병수 = 지금 남은 병 + 그 와인을 마신 기록 수 */
+    for(const w of wines){const k=ymOf(w.purchaseDate,w.createdAt);if(!m[k])continue;const n=Math.max(0,w.qty||0)+drinks.filter(d=>d.wineId===w.id).length;m[k].qty+=n;m[k].amt+=n*(w.price||0)}
+  }else{
+    for(const d of drinks){const k=ymOf(d.date,d.createdAt);if(!m[k])continue;const w=wines.find(x=>x.id===d.wineId);m[k].qty+=1;m[k].amt+=d.price??(w?w.price||0:0)}
+  }
+  return ks.map(k=>({k,...m[k]}));
+}
+const amtShort=n=>n>=1e8?(n/1e8).toFixed(1).replace(/\.0$/,'')+'억':n>=1e4?Math.round(n/1e4).toLocaleString()+'만':Math.round(n).toLocaleString();
+function chart(kind,head){
+  const rows=monthly(kind),mode=CH[kind],val=r=>mode==='qty'?r.qty:r.amt,max=Math.max(...rows.map(val)),fmt=v=>mode==='qty'?v+'병':won(v)||'0원';
+  const tot=rows.reduce((a,r)=>a+val(r),0),peak=rows.findIndex(r=>val(r)===max);
+  const lab=k=>+k.slice(5)+'월',full=k=>k.slice(0,4)+'년 '+(+k.slice(5))+'월';
+  return`<div class="panel chart" data-chart="${kind}"><div class="ch-head"><h2>${head}</h2><div class="seg" role="group" aria-label="${head} 단위"><button type="button" data-chmode="qty" aria-pressed="${mode==='qty'}">수량</button><button type="button" data-chmode="amt" aria-pressed="${mode==='amt'}">금액</button></div></div>
+    <p class="ch-read" role="status">최근 12개월 합계 <b>${fmt(tot)}</b></p>
+    ${max>0?`<div class="ch-plot">${rows.map((r,i)=>{const v=val(r);return`<button type="button" class="ch-col" data-chtip="${esc(full(r.k)+' · '+r.qty+'병 · '+(won(r.amt)||'0원'))}" aria-label="${esc(full(r.k)+' '+fmt(v))}"><span class="ch-val">${i===peak?(mode==='qty'?v:amtShort(v)):''}</span><span class="ch-area"><span class="ch-bar" style="height:${v?Math.max(3,v/max*100):0}%"></span></span></button>`}).join('')}</div>
+    <div class="ch-x">${rows.map((r,i)=>`<span>${i===0||r.k.slice(5)==='01'?`<i>${r.k.slice(2,4)}년</i>`:''}${lab(r.k)}</span>`).join('')}</div>`
+      :`<p class="hint" style="margin:8px 0 0">${kind==='buy'?'최근 12개월에 구매한 와인이 없습니다.':'최근 12개월에 마신 기록이 없습니다.'}</p>`}
+    <details class="ch-table"><summary>표로 보기</summary><table><thead><tr><th>월</th><th>수량</th><th>금액</th></tr></thead><tbody>${[...rows].reverse().map(r=>`<tr><td>${full(r.k)}</td><td>${r.qty}병</td><td>${won(r.amt)||'0원'}</td></tr>`).join('')}</tbody></table></details>
+  </div>`;
 }
 function renderStats(){
   const el=$('#stats');
@@ -606,13 +674,15 @@ function renderStats(){
   const withM=stock.filter(w=>w.marketKRW);
   const mval=withM.reduce((s,w)=>s+w.marketKRW*w.qty,0);
   const ready=stock.filter(w=>{const s=winState(w);return s&&s[1]!=='wait'});
-  el.innerHTML=`<div class="tiles">
-    <div class="tile"><b>${bottles}병</b><span>보유 (${stock.length}종)</span></div>
-    <div class="tile"><b>${drinks.length}병</b><span>마신 기록</span></div>
-    <div class="tile"><b>${won(cost)||'0원'}</b><span>보유분 구매 총액</span></div>
-    <div class="tile"><b>${withM.length?won(mval):'–'}</b><span>추정 시세 합계 (${withM.length}종 기준)</span></div>
+  el.innerHTML=`<div class="tiles deep">
+    <div class="tile"><span>보유</span><b>${bottles}<small>병</small></b><em>${stock.length}종</em></div>
+    <div class="tile"><span>마신 기록</span><b>${drinks.length}<small>병</small></b></div>
+    <div class="tile"><span>보유분 구매 총액</span><b>${won(cost)||'0원'}</b></div>
+    <div class="tile"><span>추정 시세 합계</span><b class="gold">${withM.length?won(mval):'–'}</b><em>${withM.length}종 기준</em></div>
   </div>
-  ${ready.length?`<div class="panel"><h2>지금 마시기 좋은 와인</h2><div class="list">${ready.slice(0,8).map(w=>{const s=winState(w);return`<button type="button" class="chip" style="width:100%;border-radius:10px;justify-content:space-between;gap:10px;padding:10px 12px" data-wine="${esc(w.id)}"><span style="flex:1;min-width:0;text-align:left;overflow-wrap:anywhere">${w.vintage?esc(w.vintage)+' ':''}${esc(title(w))}</span>${s[1]==='late'?`<span class="pill late">${s[0]}</span>`:''}</button>`}).join('')}</div></div>`:''}
+  ${ready.length?`<div class="panel"><h2>지금 마시기 좋은 와인</h2><div class="rlist">${ready.slice(0,8).map(w=>{const st=winState(w);return`<button type="button" data-wine="${esc(w.id)}"><span class="dot" style="background:${styleVar(w.style)}"></span><span class="rv">${w.vintage?esc(w.vintage):'NV'}</span><span class="rn">${esc(title(w))}</span>${st[1]==='late'?`<span class="pill late">${st[0]}</span>`:''}</button>`}).join('')}</div></div>`:''}
+  ${chart('buy','월별 구매')}${chart('use','월별 소비')}
+  <p class="hint" style="margin:-4px 2px 0">구매는 구매일 기준이며, 마신 병도 구매 수량에 포함합니다. 금액은 병당 구매가 기준이고, 구매가가 없는 와인은 0원으로 셉니다.</p>
   ${bars('보관 위치별 보유 병수',tally('location'))}${bars('스타일별 보유 병수',tally('style'))}${bars('국가별 보유 병수',tally('country'))}${bars('산지별 보유 병수',tally('region'))}
   <button type="button" class="btn" id="csv-btn">목록을 CSV로 내보내기</button>`;
 }
@@ -1060,7 +1130,7 @@ async function saveDrink(form){
   const btn=$('#save-drink');btn.disabled=true;
   const old=id?drinks.find(x=>x.id===id)||{}:{};
   const w=wines.find(x=>x.id===wineId);
-  const d={...old,wineId,date:v('d-date')||today(),score:num(v('d-score')),occasion:v('d-occasion'),people:v('d-people'),pairing:v('d-pairing'),note:$('#d-note').value.trim(),
+  const d={...old,price:old.price??(w&&w.price!=null?w.price:null),wineId,date:v('d-date')||today(),score:num(v('d-score')),occasion:v('d-occasion'),people:v('d-people'),pairing:v('d-pairing'),note:$('#d-note').value.trim(),
     title:old.title||(w?title(w):''),vintage:old.vintage??(w?w.vintage:null),style:old.style||(w?w.style:''),createdAt:old.createdAt||Date.now()};
   try{
     await put('drinks',id||newId(),d);
@@ -1180,6 +1250,8 @@ document.querySelector('main').addEventListener('click',e=>{
   const g=e.target.closest('[data-goloc]');if(g){F.loc=g.dataset.goloc;F.state='';goCellar();return}
   const w=e.target.closest('[data-wine]');if(w){openWine(w.dataset.wine);return}
   const d=e.target.closest('[data-drink]');if(d){openDrink(null,d.dataset.drink);return}
+  const cm=e.target.closest('[data-chmode]');if(cm){CH[cm.closest('[data-chart]').dataset.chart]=cm.dataset.chmode;renderStats();return}
+  const cc=e.target.closest('.ch-col');if(cc){const p=cc.closest('.chart');p.querySelectorAll('.ch-col.on').forEach(x=>x.classList.remove('on'));cc.classList.add('on');p.querySelector('.ch-read').innerHTML='<b>'+esc(cc.dataset.chtip)+'</b>';return}
   if(e.target.id==='csv-btn'){sheet('CSV 내보내기',`<p class="hint">아래 내용을 복사해 엑셀이나 메모에 붙여 넣으세요.</p><textarea class="csv" id="csv-out" readonly>${esc(csv())}</textarea><div class="acts"><button type="button" class="btn primary" data-act="dl-csv">파일로 저장</button><button type="button" class="btn" data-act="copy-csv">복사</button></div>`)}
 });
 $('#sheet').addEventListener('click',async e=>{

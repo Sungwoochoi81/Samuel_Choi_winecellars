@@ -205,7 +205,15 @@ nav a[aria-current=page]{color:var(--accent);border-top-color:var(--accent);font
 .hero{display:flex;gap:12px;align-items:baseline}
 .hero .v{font-family:var(--display);font-weight:700;font-size:34px;letter-spacing:-.03em;line-height:1}
 a.ext{color:var(--accent);font-size:14px}
-#toast{position:fixed;left:50%;bottom:76px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 14px;border-radius:10px;font-size:13px;z-index:20;max-width:calc(100% - 32px)}
+/* 결과 알림: 화면 위쪽에 밝은 카드로. 아래쪽 버튼과 저장 띠를 가리지 않는다 */
+#toast{position:fixed;left:50%;top:calc(10px + env(safe-area-inset-top));transform:translateX(-50%);z-index:30;width:max-content;max-width:min(calc(100% - 24px),440px);display:flex;align-items:center;gap:10px;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:16px;padding:10px 14px 10px 10px;font-size:14px;line-height:1.4;box-shadow:0 14px 30px -12px rgba(0,0,0,.38),0 2px 6px rgba(0,0,0,.08);animation:toastIn .22s cubic-bezier(.2,.8,.2,1);cursor:pointer}
+#toast .t-ic{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--good) 16%,var(--surface));color:var(--good)}
+#toast .t-ic svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+#toast.warn .t-ic{background:color-mix(in srgb,var(--bad) 14%,var(--surface));color:var(--bad)}
+#toast.info .t-ic{background:color-mix(in srgb,var(--gold) 26%,var(--surface));color:var(--gold-ink)}
+#toast .t-tx{min-width:0;overflow-wrap:anywhere}
+@keyframes toastIn{from{transform:translate(-50%,-14px);opacity:0}to{transform:translate(-50%,0);opacity:1}}
+@media (prefers-reduced-motion:reduce){#toast{animation:none}}
 textarea.csv{width:100%;min-height:180px;font-family:ui-monospace,monospace;font-size:12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:10px}
 
 /* ---------- redesign: home dashboard, photo cards, icon nav ---------- */
@@ -249,17 +257,19 @@ h1{font-size:19px;font-weight:700;white-space:nowrap;letter-spacing:-.02em}
 .quick button{display:flex;align-items:center;justify-content:center;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 4px;font-weight:600;font-size:13.5px;min-height:46px;white-space:nowrap;min-width:0}
 .quick svg{flex:none;width:18px;height:18px}
 .quick svg{color:var(--gold-ink)}
-.sec{display:flex;justify-content:space-between;align-items:baseline;margin-top:6px}
+.sec{display:flex;justify-content:space-between;align-items:baseline;margin-top:2px}
+#home{gap:9px}
+#home .sec a{padding:2px 0}
 .sec h2{font-size:16px;margin:0;font-weight:700}
 .sec a{font-size:13px;color:var(--accent);text-decoration:none;padding:6px 0}
 .shelf{display:flex;gap:10px;overflow-x:auto;padding:2px 0 6px;margin:0;scrollbar-width:none;scroll-snap-type:x mandatory}
 .shelf::-webkit-scrollbar{display:none}
 .bottle{flex:none;width:calc((100% - 20px)/3);min-width:0;background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden;text-align:left;padding:0;display:flex;flex-direction:column;scroll-snap-align:start}
-.ph{position:relative;height:150px;display:grid;place-items:center;background:color-mix(in srgb,var(--c) 13%,var(--surface));color:color-mix(in srgb,var(--c) 72%,var(--ink))}
+.ph{position:relative;height:clamp(84px,13.5vh,150px);display:grid;place-items:center;background:color-mix(in srgb,var(--c) 13%,var(--surface));color:color-mix(in srgb,var(--c) 72%,var(--ink))}
 .ph img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .ph .pv{font-size:30px;font-weight:800;letter-spacing:-.03em}
 .ph .badge{position:absolute;top:8px;right:8px;background:var(--surface);color:var(--gold-ink);border:1px solid var(--line);border-radius:999px;padding:2px 8px;font-size:12px;font-weight:700}
-.b-txt{padding:8px 8px 10px;min-width:0;display:flex;flex-direction:column;gap:2px}
+.b-txt{padding:6px 8px 8px;gap:1px;min-width:0;display:flex;flex-direction:column;gap:2px}
 .b-name{font-size:12.5px;font-weight:600;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
 .b-sub{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .locs{display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -368,6 +378,7 @@ nav a svg{width:22px;height:22px}
           <option value="200000-300000">20만~30만</option>
           <option value="300000-500000">30만~50만</option>
           <option value="500000-">50만 초과</option>
+          <option value="none">시세 없음</option>
         </select>
         <select id="sort" aria-label="정렬">
           <option value="recent">최근 등록순</option>
@@ -573,7 +584,15 @@ function imgB64(file){return new Promise((res,rej)=>{
 
 /* ---------- helpers ---------- */
 let toastT;
-function toast(m){const t=$('#toast');t.textContent=m;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,3500)}
+const TOAST_IC={ok:'<path d="M5 12.5l4.5 4.5L19 7.5"/>',warn:'<path d="M12 7v6M12 16.8v.2"/>',info:'<path d="M12 4l1.8 4.9L18.7 10.7l-4.9 1.8L12 17.4l-1.8-4.9L5.3 10.7l4.9-1.8z"/>'};
+function toast(m,kind){
+  const t=$('#toast');
+  kind=kind||(/못했|실패|오류|읽을 수 없|가득|확인해 주세요|넣어 주세요|입력해 주세요|올바르지|한도|마지막 와인|첫 번째 와인|이미 /.test(m)?'warn':/중입니다|…|준비되면|연결되면|넣으면/.test(m)?'info':'ok');
+  t.className=kind;t.innerHTML=`<span class="t-ic"><svg viewBox="0 0 24 24" aria-hidden="true">${TOAST_IC[kind]}</svg></span><span class="t-tx"></span>`;
+  t.querySelector('.t-tx').textContent=m;
+  t.hidden=true;void t.offsetWidth;t.hidden=false; /* 연달아 뜰 때도 들어오는 움직임을 다시 보여 준다 */
+  clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,m.length>40?5000:3500);
+}
 function winState(w){
   if(w.drinkTo&&YEAR>w.drinkTo)return['적기 지남','late'];
   if(w.drinkFrom&&YEAR<w.drinkFrom)return['숙성 중','wait'];
@@ -699,7 +718,8 @@ function renderCellar(){
     if(F.country&&w.country!==F.country)return false;
     if(F.grape&&!grapesOf(w).includes(F.grape))return false;
     if(F.loc&&w.location!==F.loc)return false;
-    if(F.band){const[lo,hi]=F.band.split('-').map(Number),m=w.marketKRW;if(!m||!(m>lo)||(hi&&m>hi))return false} /* 현재 시세 기준: 시세가 없는 와인은 금액대에서 빠진다 */
+    if(F.band==='none'){if(w.marketKRW)return false}
+    else if(F.band){const[lo,hi]=F.band.split('-').map(Number),m=w.marketKRW;if(!m||!(m>lo)||(hi&&m>hi))return false} /* 현재 시세 기준: 시세가 없는 와인은 금액대에서 빠진다 */
     if(F.state){const st=winState(w);if(!st||st[1]!==F.state||!((w.qty||0)>0))return false}
     if(q){const hay=[w.name,w.producer,w.vintage,w.country,w.region,w.appellation,w.grape,w.classification,w.store,w.location].join(' ').toLowerCase();if(!hay.includes(q))return false}
     return true;
@@ -1190,6 +1210,7 @@ async function enrich(id,auto){
  "pairing": 어울리는 음식 한국어 한 줄,
  "drinkFrom": 시음 적기 시작 연도 숫자 또는 null, "drinkTo": 시음 적기 끝 연도 숫자 또는 null,
  "avgPrice": 이 와인 이 빈티지 이 용량 1병의 평균 시세 숫자 또는 null. ${cfg.web?'출처 우선순위: 1순위 Wine-Searcher의 평균가(Avg Price, 세전), 2순위 Vivino에 표시된 가격, 3순위 CellarTracker의 커뮤니티 평가액, 4순위 iDealwine 경매 시세. 앞 순위에서 찾으면 그 값을 그대로 쓰고 뒤 순위와 섞지 않는다':'알고 있는 해외 평균 소매가'}. 출처에 적힌 숫자를 그대로 적는다. 한국 수입 마진, 세금, 환율을 넣어 직접 계산하거나 원화로 바꾸지 마라(환산은 앱이 한다),
+ "priceSize": avgPrice가 가리키는 병 용량 ml 숫자. 이 와인의 용량(${w.size||750}ml) 가격을 찾았으면 그 용량을 적는다. 그 용량의 가격을 찾지 못했으면 시세를 비우지 말고 750ml 표준 병 가격을 avgPrice에 적고 priceSize를 750으로 둔다(용량 환산은 앱이 한다),
  "avgCurrency": avgPrice의 통화 코드(USD, EUR, KRW, GBP 등). 출처에 표시된 통화 그대로,
  "priceSource": avgPrice를 가져온 곳 이름("Wine-Searcher"|"Vivino"|"CellarTracker"|"iDealwine"|그 밖의 사이트 이름) 또는 null,
  "confidence": "높음"|"보통"|"낮음",
@@ -1203,9 +1224,11 @@ async function enrich(id,auto){
     const cur=wines.find(x=>x.id===id);if(!cur)return'gone';
     /* 시세: 출처에 적힌 값을 그대로 받고, 원화 환산은 실제 환율로만 한다(수입 마진·세금 추정을 더하지 않는다) */
     const mp=num(r.avgPrice??r.avgUSD),mc=/^[A-Z]{3}$/.test(String(r.avgCurrency||''))?r.avgCurrency:'USD';let mk=null,mfx=null;
-    if(mp>0){if(mc==='KRW')mk=Math.round(mp);else{const fx=await fxKRW(mc);if(fx){mfx=fx.rate;mk=Math.round(mp*fx.rate)}}}
+    /* 매그넘처럼 그 용량의 시세가 없어 750ml 가격이 온 경우에는 용량 비율로 환산한다 */
+    const wsz=cur.size||750,psz=num(r.priceSize)>0?num(r.priceSize):wsz,mscale=psz!==wsz?wsz/psz:1;
+    if(mp>0){if(mc==='KRW')mk=Math.round(mp*mscale);else{const fx=await fxKRW(mc);if(fx){mfx=fx.rate;mk=Math.round(mp*mscale*fx.rate)}}}
     const critics=(Array.isArray(r.critics)?r.critics:[]).map(c=>({who:String(c&&c.who||'').slice(0,40),abbr:String(c&&c.abbr||'').replace(/[^A-Za-z]/g,'').toUpperCase().slice(0,3),score:num(c&&c.score),max:num(c&&c.max)===20?20:100})).filter(c=>c.who&&c.score>0&&c.score<=c.max&&(c.max===20||c.score>=50)).slice(0,4);
-    const upd={...cur,aiPending:false,aiTries:0,aiErr:r.about?'':'이 와인의 정보를 찾지 못했습니다.',about:r.about||cur.about||'',...(r.about?{aboutVintage:String(r.vintageNote||'').slice(0,600),aboutProducer:String(r.producer||'').slice(0,800),critics}:{}),pairing:r.pairing||cur.pairing||'',marketKRW:mk,marketUSD:mc==='USD'&&mp>0?mp:null,marketOrig:mp>0?mp:null,marketCur:mp>0?mc:'',marketFx:mfx,marketSrc:mp>0?String(r.priceSource||'').slice(0,40):'',marketConf:r.confidence||'',marketNote:r.note||'',...(cfg.web&&num(r.vivino)>=1&&num(r.vivino)<=5?{vivino:Math.round(num(r.vivino)*10)/10,vivinoN:num(r.vivinoCount),vivinoAt:today()}:{}),marketAt:today(),aboutWeb:!!cfg.web,sources:cfg.web?out.sources:[]};
+    const upd={...cur,aiPending:false,aiTries:0,aiErr:r.about?'':'이 와인의 정보를 찾지 못했습니다.',about:r.about||cur.about||'',...(r.about?{aboutVintage:String(r.vintageNote||'').slice(0,600),aboutProducer:String(r.producer||'').slice(0,800),critics}:{}),pairing:r.pairing||cur.pairing||'',marketKRW:mk,marketUSD:mc==='USD'&&mp>0?mp:null,marketOrig:mp>0?mp:null,marketSize:mp>0&&mscale!==1?psz:null,marketCur:mp>0?mc:'',marketFx:mfx,marketSrc:mp>0?String(r.priceSource||'').slice(0,40):'',marketConf:r.confidence||'',marketNote:r.note||'',...(cfg.web&&num(r.vivino)>=1&&num(r.vivino)<=5?{vivino:Math.round(num(r.vivino)*10)/10,vivinoN:num(r.vivinoCount),vivinoAt:today()}:{}),marketAt:today(),aboutWeb:!!cfg.web,sources:cfg.web?out.sources:[]};
     if(!cur.drinkFrom&&num(r.drinkFrom))upd.drinkFrom=num(r.drinkFrom);
     if(!cur.drinkTo&&num(r.drinkTo))upd.drinkTo=num(r.drinkTo);
     await put('wines',id,upd);
@@ -1250,7 +1273,7 @@ function openWine(id,over){
       ${kv('산지',[withFlag(w.country),w.region].filter(Boolean).join(' · '))}${kv('마을 / 밭',w.appellation)}${kv('등급',w.classification)}${kv('품종',w.grape)}
       ${kv('용량',w.size?w.size+'ml':'')}${kv('시음 적기',win)}${kv('보관 위치',locText(w))}
       ${w.price||w.price===0?`<dt>구매가</dt><dd>${esc(priceText(w))}${w.fxRate?`<br><span class="hint">환율 ${amt(w.fxRate*fxUnit(w.currency))}원 / ${fxUnit(w.currency)} ${esc(w.currency)} · ${esc(w.fxDate||'')}</span>`:''}</dd>`:''}${kv('구매처',w.store)}${kv('구매일',w.purchaseDate)}
-      ${w.marketKRW||w.marketOrig||w.marketUSD?`<dt>시세</dt><dd>${w.marketKRW?won(w.marketKRW):'원화 환산 없음'}${diff!==null?` · 구매가 대비 ${diff>=0?'+':''}${diff}%`:''}<br><span class="hint">${esc([w.marketSrc?w.marketSrc+' 평균가':(w.aboutWeb?'웹 검색 기반':'AI 지식 기반 추정'),w.marketOrig&&w.marketCur&&w.marketCur!=='KRW'?`${CSYM[w.marketCur]||''}${amt(w.marketOrig)} ${w.marketCur}${w.marketFx?' × 환율 '+amt(Math.round(w.marketFx*100)/100)+'원':''}`:(!w.marketOrig&&w.marketUSD?'해외 약 $'+Math.round(w.marketUSD).toLocaleString():''),w.marketAt,/avgKRW|마진|추정/.test(w.marketNote||'')?'':w.marketNote].filter(Boolean).join(' · '))}</span></dd>`:''}
+      ${w.marketKRW||w.marketOrig||w.marketUSD?`<dt>시세</dt><dd>${w.marketKRW?won(w.marketKRW):'원화 환산 없음'}${diff!==null?` · 구매가 대비 ${diff>=0?'+':''}${diff}%`:''}<br><span class="hint">${esc([w.marketSrc?w.marketSrc+' 평균가':(w.aboutWeb?'웹 검색 기반':'AI 지식 기반 추정'),w.marketOrig&&w.marketCur&&w.marketCur!=='KRW'?`${CSYM[w.marketCur]||''}${amt(w.marketOrig)} ${w.marketCur}${w.marketSize?` (${w.marketSize}ml 가격) × ${amt(Math.round((w.size||750)/w.marketSize*100)/100)} (${w.size||750}ml 환산)`:''}${w.marketFx?' × 환율 '+amt(Math.round(w.marketFx*100)/100)+'원':''}`:(!w.marketOrig&&w.marketUSD?'해외 약 $'+Math.round(w.marketUSD).toLocaleString():''),w.marketAt,/avgKRW|마진|추정/.test(w.marketNote||'')?'':w.marketNote].filter(Boolean).join(' · '))}</span></dd>`:w.about&&!aiStatus(w)?`<dt>시세</dt><dd>찾지 못함<br><span class="hint">구매가 입력과는 관계없이, AI가 이 와인의 평균 시세를 찾지 못했습니다. 아래 "다시 받기"로 다시 시도할 수 있습니다.</span></dd>`:''}
       ${kv('메모',w.memo)}${logs?kv('마신 기록',logs+'회'):''}
     </dl>
     ${(w.critics&&w.critics.length)||w.vivino?`<div class="scores">${scoreLine(w,true)}</div>`:''}
@@ -1569,6 +1592,7 @@ for(const n of['openForm','openWine','openDrink','openPicker','openMove','openSe
 /* ---------- events ---------- */
 $('#set-btn').addEventListener('click',()=>openSettings());
 $('#ai-btn').addEventListener('click',()=>openAskAll());
+$('#toast').addEventListener('click',()=>{clearTimeout(toastT);$('#toast').hidden=true});
 /* 상세 화면에서 왼쪽으로 밀면 다음 와인, 오른쪽으로 밀면 이전 와인. 사진 묶음을 넘기는 동작과 위아래 스크롤은 건드리지 않는다 */
 let swipe0=null;
 $('#sheet').addEventListener('touchstart',e=>{swipe0=null;if(e.touches.length!==1||!$('#sheet [data-detail]')||e.target.closest('.detail-gal,input,textarea,select'))return;const t=e.touches[0];swipe0={x:t.clientX,y:t.clientY,t:Date.now()}},{passive:true});

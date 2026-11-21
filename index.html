@@ -286,7 +286,13 @@ h1{font-size:19px;font-weight:700;white-space:nowrap;letter-spacing:-.02em}
 .sc{font-variant-numeric:tabular-nums;font-weight:700;font-size:11.5px;white-space:nowrap}
 .sc i{font-style:normal;font-weight:600;color:var(--muted);margin-right:2px;font-size:10px}
 .sc.cr{color:var(--wine)} .sc.vv{color:var(--gold-ink)}
-.added{background:color-mix(in srgb,var(--accent) 9%,var(--surface));border:1px solid color-mix(in srgb,var(--accent) 25%,var(--line));border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;font-size:13px}
+.added{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--gold);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;font-size:13px}
+.added-t{display:flex;align-items:center;gap:6px;color:var(--muted)}
+.added-t svg{width:15px;height:15px;fill:none;stroke:var(--good);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.added .acts{flex-wrap:nowrap}
+.added .btn{min-width:0;padding:10px 8px;white-space:nowrap;font-size:14px}
+.added .btn.go{flex:1.5;background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px}
+.added .btn.go svg{width:18px;height:18px;flex:none}
 .scores{display:flex;flex-wrap:wrap;gap:6px}
 .hero-sc{display:inline-flex;gap:8px;align-items:center}
 .hero-sc .sc{font-size:13px}
@@ -1143,7 +1149,7 @@ function openWine(id,over){
   sheet(esc(title(w)),`<div data-detail="${esc(id)}" style="display:flex;flex-direction:column;gap:12px">
     ${thumbs[id]?`<div class="detail-ph"><img src="${thumbUrl(id)}" alt=""></div>`:''}
     <div class="hero"><span class="v">${w.vintage?esc(w.vintage):'NV'}</span><span class="w-meta"><span class="chip" style="min-height:28px;padding:2px 10px">${styleIcon(w.style)}${esc(w.style||'')}</span>${st?`<span class="pill ${st[1]}">${st[0]}</span>`:''}<span>${Math.max(0,w.qty||0)}병 보유</span>${scoreLine(w)?`<span class="hero-sc">${scoreLine(w)}</span>`:''}</span></div>
-    ${justAdded===id?`<div class="added"><span>셀러에 등록했습니다. 이어서 다른 와인도 등록할 수 있습니다.</span><div class="acts"><button type="button" class="btn primary" data-act="add-more">＋ 추가 등록</button><button type="button" class="btn" data-act="add-more-cam">라벨 촬영으로 등록</button></div></div>`:''}
+    ${justAdded===id?`<div class="added"><span class="added-t"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>셀러에 등록했습니다. 이어서 등록할까요?</span><div class="acts"><button type="button" class="btn go" data-act="add-more-cam"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.5"/></svg>라벨 촬영으로 등록</button><button type="button" class="btn" data-act="add-more">＋ 직접 입력</button></div></div>`:''}
     <div class="acts three">
       <button type="button" class="btn primary" data-act="drink" data-id="${esc(id)}" ${(w.qty||0)>0?'':'disabled'}>마시기</button>
       <button type="button" class="btn" data-act="edit" data-id="${esc(id)}">수정</button>

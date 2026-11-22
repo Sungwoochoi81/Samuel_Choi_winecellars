@@ -428,13 +428,16 @@ h1{font-weight:400;font-size:20px;letter-spacing:.04em;padding-right:1px}
 .btn.primary{letter-spacing:.04em}
 .hbtns .hb,.ai-btn{letter-spacing:.02em;font-weight:500}
 .hbtns .hb.solid{box-shadow:none}
-.hbtns .hb.tonal{background:transparent;border-color:var(--ink);color:var(--ink)}
+.hbtns .hb.tonal{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
 .hbtns .icon-btn{border-radius:2px}
 nav{border-top-color:var(--line)}
 nav a[aria-current=page]{color:var(--ink);border-top-color:var(--gold)}
 #cam-btn{box-shadow:0 0 0 1px var(--surface),0 0 0 2px var(--gold)}
 .wine,.panel,.tile,.pick{box-shadow:none}
 :focus-visible{outline-color:var(--gold-ink)}
+@keyframes slide-l{from{opacity:.4;transform:translateX(22px)}to{opacity:1;transform:none}}
+@keyframes slide-r{from{opacity:.4;transform:translateX(-22px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:no-preference){body[data-slide=l] main>.wrap:not([hidden]){animation:slide-l .22s ease-out}body[data-slide=r] main>.wrap:not([hidden]){animation:slide-r .22s ease-out}}
 </style>
 </head>
 <body>
@@ -493,7 +496,7 @@ nav a[aria-current=page]{color:var(--ink);border-top-color:var(--gold)}
   <a href="#cellar" data-tab="cellar"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span>셀러</span></a>
   <button type="button" id="cam-btn" aria-label="라벨을 촬영해 와인 추가"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.5"/></svg></button>
   <a href="#incoming" data-tab="incoming"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8l9-5 9 5v8l-9 5-9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg><span>입고예정</span></a>
-  <a href="#stats" data-tab="stats"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V11M12 20V4M19 20v-6M2 20h20"/></svg><span>통계</span></a>
+  <a href="#stats" data-tab="stats"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V11M12 20V4M19 20v-6M2 20h20"/></svg><span>기록</span></a>
 </nav>
 
 <div id="sheet" hidden></div>
@@ -1921,6 +1924,16 @@ function rootHome(){
   try{const h=location.hash;history.replaceState(null,'','#home');history.pushState(null,'',h);depth=1;keepDepth()}catch(_){}
 }
 for(const ev of['click','keydown','touchend'])addEventListener(ev,rootHome,{capture:true,passive:true});
+/* 좌우로 밀어 탭 이동: 홈 ↔ 셀러 ↔ 입고예정 ↔ 기록. 옆으로 스크롤되는 줄(선반·칩)이나 입력 칸에서 시작한 밀기는 건드리지 않는다 */
+const TABS=['home','cellar','incoming','stats'];let tabSwipe=null;
+function xScroller(el,stop){for(;el&&el!==stop;el=el.parentElement){if(el.scrollWidth>el.clientWidth+4&&/(auto|scroll)/.test(getComputedStyle(el).overflowX))return true}return false}
+const mainEl=document.querySelector('main');
+mainEl.addEventListener('touchstart',e=>{tabSwipe=null;if(e.touches.length!==1||!$('#sheet').hidden)return;const t=e.touches[0];if(e.target.closest('input,textarea,select,.shelf,.chips')||xScroller(e.target,mainEl))return;tabSwipe={x:t.clientX,y:t.clientY,t:Date.now()}},{passive:true});
+mainEl.addEventListener('touchend',e=>{if(!tabSwipe)return;const t=e.changedTouches[0],dx=t.clientX-tabSwipe.x,dy=t.clientY-tabSwipe.y,dt=Date.now()-tabSwipe.t;tabSwipe=null;
+  if(Math.abs(dx)<70||Math.abs(dx)<Math.abs(dy)*2||dt>700||!$('#sheet').hidden)return;
+  const cur=route(),i=TABS.indexOf(cur==='history'?'stats':cur),n=i+(dx<0?1:-1);if(i<0||n<0||n>=TABS.length)return;
+  document.body.dataset.slide=dx<0?'l':'r';go(TABS[n]);setTimeout(()=>{delete document.body.dataset.slide},260)},{passive:true});
+mainEl.addEventListener('touchcancel',()=>{tabSwipe=null},{passive:true});
 document.addEventListener('click',e=>{
   const a=e.target.closest&&e.target.closest('a[href^="#"]');if(!a)return;
   const t=a.getAttribute('href').slice(1);if(!VIEWS.includes(t))return;

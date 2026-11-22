@@ -433,6 +433,8 @@ nav a svg{width:22px;height:22px}
           <option value="vivino">Vivino 평점 높은 순</option>
           <option value="name">이름순</option>
           <option value="producer">생산자별</option>
+          <option value="qtydesc">보유량 많은 순</option>
+          <option value="qtyasc">보유량 적은 순</option>
           <option value="window">시음 적기 빠른 순</option>
         </select>
       </div>
@@ -803,6 +805,9 @@ function renderCellar(){
     producer:(a,b)=>(!a.producer)-(!b.producer)||nkey(a.producer).localeCompare(nkey(b.producer))||title(a).localeCompare(title(b))||(vintNum(a)||big)-(vintNum(b)||big),
     window:(a,b)=>(a.drinkFrom||a.drinkTo||big)-(b.drinkFrom||b.drinkTo||big)
   };
+  /* 보유량 순: 보관 위치만 달라 한 줄로 묶이는 같은 와인은 합친 병수로 견준다 */
+  if(F.sort==='qtydesc'||F.sort==='qtyasc'){const tot={};for(const w of rows){const k=sameKey(w);tot[k]=(tot[k]||0)+Math.max(0,w.qty||0)}const d=F.sort==='qtydesc'?-1:1;
+    sorters[F.sort]=(a,b)=>d*(tot[sameKey(a)]-tot[sameKey(b)])||title(a).localeCompare(title(b))||(vintNum(a)||big)-(vintNum(b)||big)}
   rows.sort(sorters[F.sort]||sorters.recent);
   cellarOrder=rows.map(w=>w.id); /* 상세 화면에서 옆으로 넘길 때 따르는 순서 */
   const bottles=rows.reduce((s,w)=>s+Math.max(0,w.qty||0),0);

@@ -352,6 +352,7 @@ h1{font-size:19px;font-weight:700;white-space:nowrap;letter-spacing:-.02em}
 .rel{display:flex;flex-wrap:wrap;gap:6px}
 .rel .btn{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .newdrink{display:flex;flex-direction:column;gap:8px;background:color-mix(in srgb,var(--accent) 8%,var(--surface));border:1px solid color-mix(in srgb,var(--accent) 22%,var(--line));border-radius:4px;padding:10px 12px;font-size:13px}
+.in-tools{position:sticky;top:0;z-index:4;background:var(--bg);margin:0 -16px;padding:0 16px 10px;border-bottom:1px solid var(--line);box-shadow:0 8px 12px -12px rgba(0,0,0,.35);display:flex;flex-direction:column;gap:8px}
 .in-filter{display:flex;gap:8px;align-items:center}
 .in-filter select{flex:1 1 0;min-width:0;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:3px;padding:8px 2px 8px 10px;font-size:13px;min-height:40px;text-overflow:ellipsis}
 .in-filter .btn{flex:none}
@@ -990,11 +991,11 @@ function renderIncoming(){
   const groups={};for(const x of shown)(groups[key(x)]=groups[key(x)]||[]).push(x);
   const ks=Object.keys(groups).sort((a,b)=>inGroup==='store'?groups[b].reduce((s,x)=>s+inAmt(x),0)-groups[a].reduce((s,x)=>s+inAmt(x),0)||a.localeCompare(b):b.localeCompare(a));
   const gname=k=>inGroup==='store'?k:k?k.slice(0,4)+'년 '+(+k.slice(5))+'월 구매':'구매일 미입력';
-  el.innerHTML=`<div class="in-head"><div><b>${bottles}병</b> · ${shown.length}종${total?' · '+won(total):''}</div>
+  el.innerHTML=`<div class="in-tools"><div class="in-head"><div><b>${bottles}병</b> · ${shown.length}종${total?' · '+won(total):''}</div>
       <div class="seg" role="group" aria-label="묶어 보기"><button type="button" data-ingroup="store" aria-pressed="${inGroup==='store'}">구매처별</button><button type="button" data-ingroup="month" aria-pressed="${inGroup==='month'}">구매시기별</button></div></div>
     <div class="in-filter"><select id="in-store" aria-label="구매처로 거르기"><option value="">구매처 전체</option>${stores.map(v=>`<option value="${esc(v)}"${v===inF.store?' selected':''}>${esc(v)} (${cnt(x=>inStore(x)===v&&(!inF.month||inMonth(x)===inF.month))})</option>`).join('')}</select>
       <select id="in-month" aria-label="구매한 달로 거르기"><option value="">구매월 전체</option>${months.map(v=>`<option value="${esc(v)}"${v===inF.month?' selected':''}>${esc(mname(v))} (${cnt(x=>inMonth(x)===v&&(!inF.store||inStore(x)===inF.store))})</option>`).join('')}</select>
-      ${inF.store||inF.month?'<button type="button" class="btn small" id="in-clear">전체 보기</button>':''}</div>
+      ${inF.store||inF.month?'<button type="button" class="btn small" id="in-clear">전체 보기</button>':''}</div></div>
     ${shown.length?'':'<div class="blank">조건에 맞는 입고예정 와인이 없습니다.</div>'}
     ${ks.map(k=>{const g=[...groups[k]].sort((a,b)=>String(b.purchaseDate||'').localeCompare(String(a.purchaseDate||''))||(b.createdAt||0)-(a.createdAt||0));const gt=g.reduce((s,x)=>s+inAmt(x),0);
       return`<section class="panel in-group"><div class="in-gh"><h2>${esc(gname(k))}</h2><span>${g.reduce((s,x)=>s+Math.max(0,x.qty||0),0)}병 · ${g.length}종${gt?' · '+won(gt):''}</span></div>

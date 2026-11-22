@@ -349,6 +349,7 @@ h1{font-size:19px;font-weight:700;white-space:nowrap;letter-spacing:-.02em}
 .prod-head span{flex:none;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
 .rel{display:flex;flex-wrap:wrap;gap:6px}
 .rel .btn{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.newdrink{display:flex;flex-direction:column;gap:8px;background:color-mix(in srgb,var(--accent) 8%,var(--surface));border:1px solid color-mix(in srgb,var(--accent) 22%,var(--line));border-radius:12px;padding:10px 12px;font-size:13px}
 .in-filter{display:flex;gap:8px;align-items:center}
 .in-filter select{flex:1 1 0;min-width:0;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;padding:8px 2px 8px 10px;font-size:13px;min-height:40px;text-overflow:ellipsis}
 .in-filter .btn{flex:none}
@@ -1146,8 +1147,11 @@ if(history.state&&history.state.sheet)history.replaceState(null,'');
 
 const fld=(id,label,val,attrs='',full=false)=>`<div class="field${full?' full':''}"><label for="${id}">${label}</label><input id="${id}" value="${esc(val??'')}" ${attrs}></div>`;
 /* mode: 없음=셀러 와인 추가/수정, 'incoming'=입고예정 항목 추가/수정, 'draft'=직구 내역 확인 중인 항목 수정(id는 순번), 'arrive'=입고예정 항목을 셀러에 등록 */
+/* 마시기 → '새로 산 와인' 으로 들어온 등록: '바로 마십니다'가 골라진 채로 연다 */
+let drinkNowAt=0;
 function openForm(id,mode){
   scanImgs=[];scanSeq++;mode=mode||'';
+  const nowPick=!id&&!mode&&drinkNowAt&&Date.now()-drinkNowAt<600000;drinkNowAt=0;
   formPhotos=!mode&&id?photosOf(id).map(k=>thumbs[k]):[];photosDirty=false;
   const bd=mode==='batch'?batch[+id]:null;if(bd){formPhotos=[bd.thumb];scanImgs=[bd.b64];photosDirty=true}
   /* 새로 입력할 때 구매 통화·구매처·보관 위치는 바로 전에 입력한 것을 기본값으로 */
@@ -1196,15 +1200,15 @@ function openForm(id,mode){
       ${pre?fld('f-eta','도착 예정일',w.eta,'type="date"'):`<div class="field"><label for="f-location">보관 위치</label><select id="f-location"><option value="">미지정</option>${locList().map(l=>`<option${w.location===l?' selected':''}>${esc(l)}</option>`).join('')}<option value="__new">새 위치 추가…</option></select></div>
       <div class="field full" id="newloc-wrap" hidden><label for="f-newloc">새 보관 위치 이름</label><input id="f-newloc" autocomplete="off"></div>`}
       ${edit||pre||mode==='batch'?'':`<div class="field full"><label id="now-label">이 와인을 지금 바로 마시나요?</label><div class="ask" role="radiogroup" aria-labelledby="now-label">
-        <label><input type="radio" name="f-now" value="" checked> 아니요, 셀러에 보관합니다</label>
-        <label><input type="radio" name="f-now" value="1"> 네, 등록하고 바로 마십니다</label></div></div>`}
+        <label><input type="radio" name="f-now" value=""${nowPick?'':' checked'}> 아니요, 셀러에 보관합니다</label>
+        <label><input type="radio" name="f-now" value="1"${nowPick?' checked':''}> 네, 등록하고 바로 마십니다</label></div></div>`}
       ${fld('f-from','시음 적기 시작 (연도)',w.drinkFrom,'inputmode="numeric"')}
       ${fld('f-to','시음 적기 끝 (연도)',w.drinkTo,'inputmode="numeric"')}
       <div class="field full"><label for="f-memo">메모</label><textarea id="f-memo">${esc(w.memo||'')}</textarea></div>
       <datalist id="dl-country">${ranked(COUNTRIES,w=>w.country).map(c=>`<option value="${esc(c)}">`).join('')}</datalist>
       <datalist id="dl-class">${ranked(CLASSES,w=>w.classification).map(c=>`<option value="${esc(c)}">`).join('')}</datalist>
       ${edit||pre?'':`<p class="hint full" style="grid-column:1/-1">${getCfg().key?'등록하면 AI가 와인 해설과 추정 시세를 자동으로 붙입니다.':'설정에 API 키를 넣어 두면 등록한 와인에 AI 해설과 추정 시세가 자동으로 붙습니다.'}</p>`}
-      <div class="savebar"><button type="submit" class="btn primary" id="save-wine">${mode==='incoming'?(id?'저장':'입고예정에 등록'):mode==='draft'?'적용':edit?'저장':'Cellars에 등록'}</button>${mode==='batch'?`<button type="button" class="btn danger bskip" data-act="batch-skip">삭제</button>`:''}${edit||pre?'':`${mode==='batch'?'':`<button type="submit" class="btn next" id="save-next" hidden aria-label="등록하고 다음 와인 촬영">추가 등록</button>`}<button type="button" class="btn more-cam" id="more-cam" data-act="shoot" hidden><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.5"/></svg>추가 촬영</button>`}</div>
+      <div class="savebar"><button type="submit" class="btn primary" id="save-wine">${mode==='incoming'?(id?'저장':'입고예정에 등록'):mode==='draft'?'적용':edit?'저장':nowPick?'등록하고 시음 기록 쓰기':'Cellars에 등록'}</button>${mode==='batch'?`<button type="button" class="btn danger bskip" data-act="batch-skip">삭제</button>`:''}${edit||pre?'':`${mode==='batch'?'':`<button type="submit" class="btn next" id="save-next" hidden aria-label="등록하고 다음 와인 촬영">추가 등록</button>`}<button type="button" class="btn more-cam" id="more-cam" data-act="shoot" hidden><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.5"/></svg>추가 촬영</button>`}</div>
     </form>`);
   photosUI();
   if(bd){const st=$('#scan-status');if(st)st.textContent=bd.status==='reading'?'라벨을 읽는 중입니다. 끝나면 아래 칸이 채워집니다…':bd.status==='fail'?(bd.err||'라벨을 읽지 못했습니다.')+' 직접 입력해 주세요.':bd.status==='nokey'?'API 키가 없어 라벨을 읽지 못했습니다. 직접 입력해 주세요.':'읽은 내용을 확인하고 틀린 곳을 고친 뒤 등록하세요. 중복이거나 잘못 찍은 사진이면 삭제를 누르세요.'}
@@ -1786,7 +1790,7 @@ async function saveDrink(form){
 let pickMode='drink';
 function openPicker(mode){
   pickMode=mode;
-  sheet(mode==='drink'?'마실 와인 고르기':'옮길 와인 고르기','<input type="search" id="pick-q" placeholder="와인명, 생산자, 위치 검색" autocomplete="off"><div class="picker" id="pick-list"></div>');
+  sheet(mode==='drink'?'마실 와인 고르기':'옮길 와인 고르기',(mode==='drink'?`<div class="newdrink"><span>셀러에 없는, 새로 산 와인을 마시나요?</span><div class="acts"><button type="button" class="btn go" data-act="drink-new-cam"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.5"/></svg>라벨 촬영</button><button type="button" class="btn" data-act="drink-new">직접 입력</button></div></div>`:'')+'<input type="search" id="pick-q" placeholder="와인명, 생산자, 위치 검색" autocomplete="off"><div class="picker" id="pick-list"></div>');
   renderPick();
 }
 function renderPick(){
@@ -1894,7 +1898,7 @@ window.addEventListener('hashchange',()=>{
   keepDepth();
   lastRoute=r;render();
 });
-$('#add-btn').addEventListener('click',()=>openForm());
+$('#add-btn').addEventListener('click',()=>{drinkNowAt=0;openForm()});
 $('#q').addEventListener('input',e=>{F.q=e.target.value;renderCellar()});
 $('#sort').addEventListener('change',e=>{F.sort=e.target.value;renderCellar()});
 $('#incoming').addEventListener('change',e=>{if(e.target.id==='in-store'){inF.store=e.target.value;renderIncoming()}else if(e.target.id==='in-month'){inF.month=e.target.value;renderIncoming()}});
@@ -1926,7 +1930,7 @@ $('#sheet').addEventListener('change',async e=>{
 $('#show-empty').addEventListener('change',e=>{F.empty=e.target.checked;renderCellar()});
 $('#style-chips').addEventListener('click',e=>{const b=e.target.closest('[data-style]');if(b){F.style=b.dataset.style;renderCellar()}});
 /* 가운데 카메라 버튼: 다른 화면을 거치지 않고 곧바로 카메라를 연다. 찍고 나면 등록 화면이 열리고 라벨을 읽는다 */
-$('#cam-btn').addEventListener('click',()=>$('#cam-direct').click());
+$('#cam-btn').addEventListener('click',()=>{drinkNowAt=0;$('#cam-direct').click()});
 $('#cam-direct').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];e.target.value='';if(!f)return;openForm();onPhoto(f)});
 $('#state-clear').addEventListener('click',()=>{F.state='';F.loc='';F.producer='';F.wname='';renderCellar()});
 function goCellar(){if(route()==='cellar')renderCellar();else go('cellar')}
@@ -1988,6 +1992,8 @@ $('#sheet').addEventListener('click',async e=>{
   else if(a==='dup-merge'||a==='dup-new'){const f=$('#wine-form');b.closest('.dup').remove();if(f){f.dataset.dup=a==='dup-new'?'new':'merge:'+id;await saveWine(f);if(f.isConnected)delete f.dataset.dup}}
   else if(a==='add-more'){justAdded=null;sheetStack.length=0;openForm()}
   else if(a==='add-more-cam'){closeSheet();$('#cam-direct').click()}
+  else if(a==='drink-new'){drinkNowAt=Date.now();openForm()}
+  else if(a==='drink-new-cam'){drinkNowAt=Date.now();$('#cam-direct').click()}
   else if(a==='d-shoot')$('#d-cam').click();
   else if(a==='d-pick')$('#d-file').click();
   else if(a==='d-unphoto'){pendingDrinkThumb='';$('#d-thumb').hidden=true;b.remove();$('#d-photo-note').textContent='저장을 누르면 사진이 지워집니다.'}

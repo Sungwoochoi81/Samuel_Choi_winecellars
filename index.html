@@ -349,6 +349,10 @@ h1{font-size:19px;font-weight:700;white-space:nowrap;letter-spacing:-.02em}
 .prod-head span{flex:none;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
 .rel{display:flex;flex-wrap:wrap;gap:6px}
 .rel .btn{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.attach{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:6px}
+.attach .att{flex:none;min-height:30px;padding:3px 11px;font:inherit;font-size:13px;line-height:1.2;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:999px;cursor:pointer}
+.attach .chip{max-width:112px;min-width:0;min-height:28px!important;padding:1px 2px 1px 9px!important;font-size:12px}
+.attach .chip .x{min-width:24px!important;min-height:24px!important;font-size:14px!important}
 .pv-wrap{position:relative;margin:0 -16px;background:#0f1110}
 .pv-gal{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}
 .pv-gal::-webkit-scrollbar{display:none}
@@ -1612,14 +1616,14 @@ async function attachFiles(list,files,stSel,max=5){
     }catch(_){if(st)st.textContent=f.name+' 파일을 읽을 수 없습니다.'}
   }
 }
-async function askAttach(files){await attachFiles(aiFiles,files,'#askall-status');askFilesUI()}
+async function askAttach(files){await attachFiles(aiFiles,files,'#askall-status',10);askFilesUI()}
 function filesUI(list,elSel,act){const el=$(elSel);if(!el)return;el.innerHTML=list.map((f,i)=>`<span class="chip" style="min-height:30px;padding:3px 6px 3px 10px;max-width:100%"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(f.name||'파일')}</span><button type="button" class="x" style="min-width:28px;min-height:28px;font-size:16px" data-act="${act}" data-i="${i}" aria-label="${esc(f.name||'파일')} 첨부 취소">×</button></span>`).join('')}
 function askFilesUI(){filesUI(aiFiles,'#askall-files','askall-unfile')}
 function openAskAll(){
   sheet('AI에게 시키기',`<p class="hint" style="font-size:14px;color:var(--ink);margin:0">셀러 전체를 보고 여러 와인을 한꺼번에 고치거나, 셀러에 대해 물어볼 수 있습니다.</p>
     <form id="askall-form" class="grid">
       <div class="field full"><label for="askall-text">무엇을 할까요?</label><textarea id="askall-text" placeholder="예: 김치냉장고에 있는 와인을 전부 삼성셀러로 옮겨줘">${esc(aiAllDraft)}</textarea>
-        <div class="acts" style="margin-top:6px"><button type="button" class="btn small" data-act="askall-img" style="flex:none">＋ 사진</button><button type="button" class="btn small" data-act="askall-file" style="flex:none">＋ 파일</button><div id="askall-files" style="display:flex;gap:6px;flex-wrap:wrap;flex:1;min-width:0;align-items:center"></div></div>
+        <div class="attach"><button type="button" class="att" data-act="askall-img">＋ 사진</button><button type="button" class="att" data-act="askall-file">＋ 파일</button><div id="askall-files" style="display:contents"></div></div>
         <input type="file" id="askall-img" accept="image/*" multiple hidden><input type="file" id="askall-file" accept="application/pdf,.pdf,.txt,.eml,.html,.htm,.csv,text/*" multiple hidden>
         <p class="hint">예: "Burgundy 와인의 시음 적기 끝을 2035로 바꿔줘", "2001 Chevillon 수량을 2병으로", "시세가 없는 와인은 시세를 받아줘", "이번 주말에 마시기 좋은 레드 추천해줘"<br><b>주문 내역으로 구매가 채우기</b>: 주문 확인 메일이나 주문 내역 화면 캡처, 영수증 PDF를 첨부하면 구매가·구매일·구매처를 채우고, 셀러에 없는 와인은 새로 등록할지 물어봅니다. 메일 내용을 위 칸에 붙여넣어도 됩니다.<br>데이터를 고치거나 와인을 삭제할 때는 바뀌는 내용을 먼저 보여 주고, 확정을 눌러야 반영됩니다. 마신 기록은 AI가 쓰지 않습니다.</p></div>
       <div class="field full"><button type="submit" class="btn primary" id="askall-send">AI에게 보내기</button><p class="hint" id="askall-status" role="status"></p><div class="answer" id="askall-answer" hidden></div></div>

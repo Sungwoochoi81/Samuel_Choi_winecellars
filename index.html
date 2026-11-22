@@ -951,12 +951,13 @@ function openIncoming(id){
 /* 직구등록: 구매 내역 캡처를 올리면 AI가 읽어 항목을 만들고, 훑어본 뒤 확정하면 입고예정에 들어간다 */
 function openDirect(){
   sheet('직구 등록',`<p class="hint" style="font-size:14px;color:var(--ink);margin:0">직구 사이트의 구매 내역을 캡처해 올리면 AI가 와인별로 읽어 줍니다. 내용을 확인하고 확정하면 입고예정에 들어갑니다.</p>
-    <div class="scan" style="position:static;box-shadow:none"><div class="acts"><button type="button" class="btn primary" data-act="direct-file">구매 내역 캡처·파일 올리기</button></div>
+    <div class="scan" style="position:static;box-shadow:none"><div class="acts"><button type="button" class="btn primary" data-act="direct-img" style="flex:2">캡처·사진 여러 장 고르기</button><button type="button" class="btn" data-act="direct-file" style="flex:1">PDF·메일 파일</button></div>
       <div id="direct-files" style="display:flex;gap:6px;flex-wrap:wrap"></div>
-      <input type="file" id="direct-file" accept="image/*,application/pdf,.pdf,.txt,.eml,.html,.htm,.csv,text/*" multiple hidden>
+      <input type="file" id="direct-img" accept="image/*" multiple hidden>
+      <input type="file" id="direct-file" accept="application/pdf,.pdf,.txt,.eml,.html,.htm,.csv,text/*" multiple hidden>
       <div class="field"><label for="direct-note">덧붙일 말 (선택)</label><input id="direct-note" autocomplete="off" placeholder="예: 구매처는 winezip, 12월 초 도착 예정"></div>
       <button type="button" class="btn primary" data-act="direct-read" id="direct-read">AI로 읽기</button>
-      <p class="hint" id="direct-status" role="status">사진, PDF, 메일 파일을 5개까지 올릴 수 있습니다.</p></div>
+      <p class="hint" id="direct-status" role="status">사진 고르는 화면에서 여러 장을 한꺼번에 선택할 수 있습니다. 모두 합쳐 5개까지 올립니다.</p></div>
     <div class="acts"><button type="button" class="btn" data-act="direct-manual">캡처 없이 직접 입력</button>${inDraft.length?`<button type="button" class="btn" data-act="direct-review">확인 중인 ${inDraft.length}종 보기</button>`:''}</div>`);
   filesUI(inFiles,'#direct-files','direct-unfile');
 }
@@ -1618,8 +1619,8 @@ function openAskAll(){
   sheet('AI에게 시키기',`<p class="hint" style="font-size:14px;color:var(--ink);margin:0">셀러 전체를 보고 여러 와인을 한꺼번에 고치거나, 셀러에 대해 물어볼 수 있습니다.</p>
     <form id="askall-form" class="grid">
       <div class="field full"><label for="askall-text">무엇을 할까요?</label><textarea id="askall-text" placeholder="예: 김치냉장고에 있는 와인을 전부 삼성셀러로 옮겨줘">${esc(aiAllDraft)}</textarea>
-        <div class="acts" style="margin-top:6px"><button type="button" class="btn small" data-act="askall-file" style="flex:none">＋ 파일 첨부</button><div id="askall-files" style="display:flex;gap:6px;flex-wrap:wrap;flex:1;min-width:0;align-items:center"></div></div>
-        <input type="file" id="askall-file" accept="image/*,application/pdf,.pdf,.txt,.eml,.html,.htm,.csv,text/*" multiple hidden>
+        <div class="acts" style="margin-top:6px"><button type="button" class="btn small" data-act="askall-img" style="flex:none">＋ 사진</button><button type="button" class="btn small" data-act="askall-file" style="flex:none">＋ 파일</button><div id="askall-files" style="display:flex;gap:6px;flex-wrap:wrap;flex:1;min-width:0;align-items:center"></div></div>
+        <input type="file" id="askall-img" accept="image/*" multiple hidden><input type="file" id="askall-file" accept="application/pdf,.pdf,.txt,.eml,.html,.htm,.csv,text/*" multiple hidden>
         <p class="hint">예: "Burgundy 와인의 시음 적기 끝을 2035로 바꿔줘", "2001 Chevillon 수량을 2병으로", "시세가 없는 와인은 시세를 받아줘", "이번 주말에 마시기 좋은 레드 추천해줘"<br><b>주문 내역으로 구매가 채우기</b>: 주문 확인 메일이나 주문 내역 화면 캡처, 영수증 PDF를 첨부하면 구매가·구매일·구매처를 채우고, 셀러에 없는 와인은 새로 등록할지 물어봅니다. 메일 내용을 위 칸에 붙여넣어도 됩니다.<br>데이터를 고치거나 와인을 삭제할 때는 바뀌는 내용을 먼저 보여 주고, 확정을 눌러야 반영됩니다. 마신 기록은 AI가 쓰지 않습니다.</p></div>
       <div class="field full"><button type="submit" class="btn primary" id="askall-send">AI에게 보내기</button><p class="hint" id="askall-status" role="status"></p><div class="answer" id="askall-answer" hidden></div></div>
     </form>`);
@@ -1944,6 +1945,7 @@ $('#sheet').addEventListener('click',async e=>{
   else if(a==='ask-again')openAsk(id);
   else if(a==='askall-again')openAskAll();
   else if(a==='askall-file')$('#askall-file').click();
+  else if(a==='askall-img')$('#askall-img').click();
   else if(a==='open-wine')openWine(id);
   else if(a==='by-producer'||a==='by-wine'){const w=wines.find(x=>x.id===id);if(w){resetF();F.producer=w.producer||'';F.wname=a==='by-wine'?w.name||'':'';keepFilter();closeSheet();goCellar();scrollTo(0,0)}}
   else if(a==='photos')openPhotos(id);
@@ -1965,6 +1967,7 @@ $('#sheet').addEventListener('click',async e=>{
   else if(a==='d-pick')$('#d-file').click();
   else if(a==='d-unphoto'){pendingDrinkThumb='';$('#d-thumb').hidden=true;b.remove();$('#d-photo-note').textContent='저장을 누르면 사진이 지워집니다.'}
   else if(a==='direct-file')$('#direct-file').click();
+  else if(a==='direct-img')$('#direct-img').click();
   else if(a==='direct-unfile'){inFiles.splice(+b.dataset.i,1);filesUI(inFiles,'#direct-files','direct-unfile')}
   else if(a==='direct-read')directRead();
   else if(a==='direct-manual')openForm('','incoming');
@@ -2002,7 +2005,7 @@ $('#sheet').addEventListener('click',async e=>{
   else if(a==='dl-csv'){download('wine-cellar-'+today()+'.csv','﻿'+csv(),'text/csv');toast('CSV 파일을 저장했습니다.')}
   else if(a==='copy-csv'){const t=$('#csv-out');try{await navigator.clipboard.writeText(t.value);toast('복사했습니다.')}catch(_){t.focus();t.select();toast('전체 선택했습니다. 길게 눌러 복사해 주세요.')}}
 });
-$('#sheet').addEventListener('change',async e=>{if(e.target.id==='d-cam'||e.target.id==='d-file'){const f=e.target.files&&e.target.files[0];e.target.value='';if(!f)return;try{const t=await makeThumb(f);pendingDrinkThumb=t;const im=$('#d-thumb');if(im){im.src=t;im.hidden=false;$('#d-photo-note').textContent='저장을 누르면 사진이 함께 기록됩니다.'}}catch(_){if($('#d-photo-note'))$('#d-photo-note').textContent='사진을 읽을 수 없습니다. 다른 사진으로 시도해 주세요.'}return}if(e.target.id==='direct-file'){const fs=[...(e.target.files||[])];e.target.value='';attachFiles(inFiles,fs,'#direct-status').then(()=>filesUI(inFiles,'#direct-files','direct-unfile'));return}if(e.target.id==='askall-file'){const fs=[...(e.target.files||[])];e.target.value='';askAttach(fs);return}if(e.target.id==='f-cam'||e.target.id==='f-file'){const fs=[...(e.target.files||[])];e.target.value='';onPhotos(fs)}});
+$('#sheet').addEventListener('change',async e=>{if(e.target.id==='d-cam'||e.target.id==='d-file'){const f=e.target.files&&e.target.files[0];e.target.value='';if(!f)return;try{const t=await makeThumb(f);pendingDrinkThumb=t;const im=$('#d-thumb');if(im){im.src=t;im.hidden=false;$('#d-photo-note').textContent='저장을 누르면 사진이 함께 기록됩니다.'}}catch(_){if($('#d-photo-note'))$('#d-photo-note').textContent='사진을 읽을 수 없습니다. 다른 사진으로 시도해 주세요.'}return}if(e.target.id==='direct-file'||e.target.id==='direct-img'){const fs=[...(e.target.files||[])];e.target.value='';const st0=$('#direct-status');if(st0&&fs.length)st0.textContent='올린 파일을 준비하는 중입니다…';const over=inFiles.length+fs.length>5;attachFiles(inFiles,fs,'#direct-status').then(()=>{filesUI(inFiles,'#direct-files','direct-unfile');const st=$('#direct-status');if(st&&st.textContent==='올린 파일을 준비하는 중입니다…')st.textContent=`${inFiles.length}개를 올렸습니다. AI로 읽기를 누르면 한꺼번에 읽습니다.`;else if(st&&over)st.textContent='5개까지만 올릴 수 있어 앞의 5개만 담았습니다.'});return}if(e.target.id==='askall-file'||e.target.id==='askall-img'){const fs=[...(e.target.files||[])];e.target.value='';askAttach(fs);return}if(e.target.id==='f-cam'||e.target.id==='f-file'){const fs=[...(e.target.files||[])];e.target.value='';onPhotos(fs)}});
 $('#sheet').addEventListener('submit',e=>{e.preventDefault();if(e.target.id==='wine-form'){e.target.dataset.next=e.submitter&&e.submitter.id==='save-next'?'cam':'';saveWine(e.target)}else if(e.target.id==='ask-form')askAi(e.target);else if(e.target.id==='askall-form')askAllAi();else if(e.target.id==='drink-form')saveDrink(e.target);else if(e.target.id==='move-form')saveMove(e.target)});
 render();
 imgInit();

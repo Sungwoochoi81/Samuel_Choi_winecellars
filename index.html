@@ -349,6 +349,9 @@ h1{font-size:19px;font-weight:700;white-space:nowrap;letter-spacing:-.02em}
 .prod-head span{flex:none;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
 .rel{display:flex;flex-wrap:wrap;gap:6px}
 .rel .btn{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.in-filter{display:flex;gap:8px;align-items:center}
+.in-filter select{flex:1 1 0;min-width:0;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;padding:8px 2px 8px 10px;font-size:13px;min-height:40px;text-overflow:ellipsis}
+.in-filter .btn{flex:none}
 .attach{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:6px}
 .attach .att{flex:none;min-height:30px;padding:3px 11px;font:inherit;font-size:13px;line-height:1.2;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:999px;cursor:pointer}
 .attach .chip{max-width:112px;min-width:0;min-height:28px!important;padding:1px 2px 1px 9px!important;font-size:12px}
@@ -931,18 +934,29 @@ function applyNames(){
 }
 /* ---------- 입고예정: 사 두고 도착을 기다리는 와인. 도착하면 셀러에 등록으로 넘긴다 ---------- */
 let inGroup='store',inDraft=[],inFiles=[];
+const inF={store:'',month:''}; /* 입고예정 조회 조건: 구매처, 구매한 달(YYYY-MM, 'none'=구매일 미입력) */
+const inStore=x=>x.store||'구매처 미입력',inMonth=x=>/^\d{4}-\d{2}/.test(x.purchaseDate||'')?x.purchaseDate.slice(0,7):'none';
 const inAmt=x=>(x.price||0)*Math.max(0,x.qty||0);
 const inName=x=>(x.vintage?x.vintage+' ':'')+title(x);
 function renderIncoming(){
   const el=$('#incoming');
   if(!incoming.length){el.innerHTML='<div class="blank"><strong>입고예정인 와인이 없습니다</strong>직구로 사 두고 도착을 기다리는 와인을 여기에 모아 둡니다. 위의 직구등록을 눌러 구매 내역 캡처를 올리거나 직접 입력하세요. 도착하면 여기서 바로 셀러에 등록할 수 있습니다.</div>';return}
-  const bottles=incoming.reduce((a,x)=>a+Math.max(0,x.qty||0),0),total=incoming.reduce((a,x)=>a+inAmt(x),0);
-  const key=x=>inGroup==='store'?(x.store||'구매처 미입력'):(/^\d{4}-\d{2}/.test(x.purchaseDate||'')?x.purchaseDate.slice(0,7):'');
-  const groups={};for(const x of incoming)(groups[key(x)]=groups[key(x)]||[]).push(x);
+  /* 구매처·구매월 조건: 고를 수 있는 값은 실제 항목에서 뽑고, 사라진 값이 골라져 있으면 푼다 */
+  const stores=[...new Set(incoming.map(inStore))].sort((a,b)=>a.localeCompare(b)),months=[...new Set(incoming.map(inMonth))].sort((a,b)=>(a==='none')-(b==='none')||b.localeCompare(a));
+  if(inF.store&&!stores.includes(inF.store))inF.store='';if(inF.month&&!months.includes(inF.month))inF.month='';
+  const shown=incoming.filter(x=>(!inF.store||inStore(x)===inF.store)&&(!inF.month||inMonth(x)===inF.month));
+  const cnt=f=>incoming.filter(f).length,mname=m=>m==='none'?'구매일 미입력':m.slice(2,4)+'년 '+(+m.slice(5))+'월';
+  const bottles=shown.reduce((a,x)=>a+Math.max(0,x.qty||0),0),total=shown.reduce((a,x)=>a+inAmt(x),0);
+  const key=x=>inGroup==='store'?inStore(x):(inMonth(x)==='none'?'':inMonth(x));
+  const groups={};for(const x of shown)(groups[key(x)]=groups[key(x)]||[]).push(x);
   const ks=Object.keys(groups).sort((a,b)=>inGroup==='store'?groups[b].reduce((s,x)=>s+inAmt(x),0)-groups[a].reduce((s,x)=>s+inAmt(x),0)||a.localeCompare(b):b.localeCompare(a));
   const gname=k=>inGroup==='store'?k:k?k.slice(0,4)+'년 '+(+k.slice(5))+'월 구매':'구매일 미입력';
-  el.innerHTML=`<div class="in-head"><div><b>${bottles}병</b> · ${incoming.length}종${total?' · '+won(total):''}</div>
+  el.innerHTML=`<div class="in-head"><div><b>${bottles}병</b> · ${shown.length}종${total?' · '+won(total):''}</div>
       <div class="seg" role="group" aria-label="묶어 보기"><button type="button" data-ingroup="store" aria-pressed="${inGroup==='store'}">구매처별</button><button type="button" data-ingroup="month" aria-pressed="${inGroup==='month'}">구매시기별</button></div></div>
+    <div class="in-filter"><select id="in-store" aria-label="구매처로 거르기"><option value="">구매처 전체</option>${stores.map(v=>`<option value="${esc(v)}"${v===inF.store?' selected':''}>${esc(v)} (${cnt(x=>inStore(x)===v&&(!inF.month||inMonth(x)===inF.month))})</option>`).join('')}</select>
+      <select id="in-month" aria-label="구매한 달로 거르기"><option value="">구매월 전체</option>${months.map(v=>`<option value="${esc(v)}"${v===inF.month?' selected':''}>${esc(mname(v))} (${cnt(x=>inMonth(x)===v&&(!inF.store||inStore(x)===inF.store))})</option>`).join('')}</select>
+      ${inF.store||inF.month?'<button type="button" class="btn small" id="in-clear">전체 보기</button>':''}</div>
+    ${shown.length?'':'<div class="blank">조건에 맞는 입고예정 와인이 없습니다.</div>'}
     ${ks.map(k=>{const g=[...groups[k]].sort((a,b)=>String(b.purchaseDate||'').localeCompare(String(a.purchaseDate||''))||(b.createdAt||0)-(a.createdAt||0));const gt=g.reduce((s,x)=>s+inAmt(x),0);
       return`<section class="panel in-group"><div class="in-gh"><h2>${esc(gname(k))}</h2><span>${g.reduce((s,x)=>s+Math.max(0,x.qty||0),0)}병 · ${g.length}종${gt?' · '+won(gt):''}</span></div>
         <div class="rlist">${g.map(x=>`<button type="button" data-incoming="${esc(x.id)}"><span class="in-main"><span class="rn">${esc(inName(x))}</span><span class="in-sub">${esc([inGroup==='store'?(x.purchaseDate?x.purchaseDate.slice(2).replace(/-/g,'.')+' 구매':''):x.store,x.eta?x.eta.slice(5).replace('-','/')+' 도착 예정':'',x.price?'병당 '+priceText(x):''].filter(Boolean).join(' · '))}</span></span><span class="in-qty">${Math.max(0,x.qty||0)}<small>병</small></span></button>`).join('')}</div></section>`}).join('')}`;
@@ -1883,6 +1897,8 @@ window.addEventListener('hashchange',()=>{
 $('#add-btn').addEventListener('click',()=>openForm());
 $('#q').addEventListener('input',e=>{F.q=e.target.value;renderCellar()});
 $('#sort').addEventListener('change',e=>{F.sort=e.target.value;renderCellar()});
+$('#incoming').addEventListener('change',e=>{if(e.target.id==='in-store'){inF.store=e.target.value;renderIncoming()}else if(e.target.id==='in-month'){inF.month=e.target.value;renderIncoming()}});
+$('#incoming').addEventListener('click',e=>{if(e.target.closest('#in-clear')){inF.store='';inF.month='';renderIncoming()}});
 $('#country').addEventListener('change',e=>{F.country=e.target.value;renderCellar()});
 $('#grape').addEventListener('change',e=>{F.grape=e.target.value;renderCellar()});
 $('#band').addEventListener('change',e=>{F.band=e.target.value;renderCellar()});

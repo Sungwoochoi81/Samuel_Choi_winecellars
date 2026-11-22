@@ -957,7 +957,7 @@ function openDirect(){
       <input type="file" id="direct-file" accept="application/pdf,.pdf,.txt,.eml,.html,.htm,.csv,text/*" multiple hidden>
       <div class="field"><label for="direct-note">덧붙일 말 (선택)</label><input id="direct-note" autocomplete="off" placeholder="예: 구매처는 winezip, 12월 초 도착 예정"></div>
       <button type="button" class="btn primary" data-act="direct-read" id="direct-read">AI로 읽기</button>
-      <p class="hint" id="direct-status" role="status">사진을 고르면 곧바로 AI가 읽습니다. 여러 장을 한꺼번에 선택할 수 있고, 5개까지 올립니다.</p></div>
+      <p class="hint" id="direct-status" role="status">사진을 고르면 곧바로 AI가 읽습니다. 여러 장을 한꺼번에 선택할 수 있고, 10개까지 올립니다.</p></div>
     <div class="acts"><button type="button" class="btn" data-act="direct-manual">캡처 없이 직접 입력</button>${inDraft.length?`<button type="button" class="btn" data-act="direct-review">확인 중인 ${inDraft.length}종 보기</button>`:''}</div>`);
   filesUI(inFiles,'#direct-files','direct-unfile');
 }
@@ -1601,10 +1601,10 @@ let aiAll=null,aiAllDraft='';
 /* 첨부 파일(주문 확인 메일, 주문 내역 캡처, 영수증 PDF 등): AI가 읽고 구매가·구매일·구매처를 채우거나 새 와인을 등록한다 */
 let aiFiles=[];
 const b64File=f=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(',')[1]||'');r.onerror=()=>rej({code:'image_rejected'});r.readAsDataURL(f)});
-async function attachFiles(list,files,stSel){
+async function attachFiles(list,files,stSel,max=5){
   const st=$(stSel);
   for(const f of files){
-    if(list.length>=5){if(st)st.textContent='파일은 5개까지 첨부할 수 있습니다.';break}
+    if(list.length>=max){if(st)st.textContent=`파일은 ${max}개까지 첨부할 수 있습니다.`;break}
     try{
       if(/^image\//.test(f.type))list.push({name:f.name,kind:'image',data:await imgB64(f)});
       else if(f.type==='application/pdf'||/\.pdf$/i.test(f.name)){if(f.size>8e6){if(st)st.textContent='PDF는 8MB 이하만 첨부할 수 있습니다.';continue}list.push({name:f.name,kind:'pdf',data:await b64File(f)})}
@@ -2005,7 +2005,7 @@ $('#sheet').addEventListener('click',async e=>{
   else if(a==='dl-csv'){download('wine-cellar-'+today()+'.csv','﻿'+csv(),'text/csv');toast('CSV 파일을 저장했습니다.')}
   else if(a==='copy-csv'){const t=$('#csv-out');try{await navigator.clipboard.writeText(t.value);toast('복사했습니다.')}catch(_){t.focus();t.select();toast('전체 선택했습니다. 길게 눌러 복사해 주세요.')}}
 });
-$('#sheet').addEventListener('change',async e=>{if(e.target.id==='d-cam'||e.target.id==='d-file'){const f=e.target.files&&e.target.files[0];e.target.value='';if(!f)return;try{const t=await makeThumb(f);pendingDrinkThumb=t;const im=$('#d-thumb');if(im){im.src=t;im.hidden=false;$('#d-photo-note').textContent='저장을 누르면 사진이 함께 기록됩니다.'}}catch(_){if($('#d-photo-note'))$('#d-photo-note').textContent='사진을 읽을 수 없습니다. 다른 사진으로 시도해 주세요.'}return}if(e.target.id==='direct-file'||e.target.id==='direct-img'){const fs=[...(e.target.files||[])],auto=e.target.id==='direct-img';e.target.value='';const st0=$('#direct-status');if(st0&&fs.length)st0.textContent='올린 파일을 준비하는 중입니다…';const over=inFiles.length+fs.length>5;attachFiles(inFiles,fs,'#direct-status').then(()=>{filesUI(inFiles,'#direct-files','direct-unfile');const st=$('#direct-status');if(st&&st.textContent==='올린 파일을 준비하는 중입니다…')st.textContent=`${inFiles.length}개를 올렸습니다. AI로 읽기를 누르면 한꺼번에 읽습니다.`;else if(st&&over)st.textContent='5개까지만 올릴 수 있어 앞의 5개만 담았습니다.';if(auto&&fs.length&&inFiles.length&&$('#direct-read'))directRead()});return} /* 사진을 고르면 버튼을 더 누르지 않아도 곧바로 AI가 읽는다 */if(e.target.id==='askall-file'||e.target.id==='askall-img'){const fs=[...(e.target.files||[])];e.target.value='';askAttach(fs);return}if(e.target.id==='f-cam'||e.target.id==='f-file'){const fs=[...(e.target.files||[])];e.target.value='';onPhotos(fs)}});
+$('#sheet').addEventListener('change',async e=>{if(e.target.id==='d-cam'||e.target.id==='d-file'){const f=e.target.files&&e.target.files[0];e.target.value='';if(!f)return;try{const t=await makeThumb(f);pendingDrinkThumb=t;const im=$('#d-thumb');if(im){im.src=t;im.hidden=false;$('#d-photo-note').textContent='저장을 누르면 사진이 함께 기록됩니다.'}}catch(_){if($('#d-photo-note'))$('#d-photo-note').textContent='사진을 읽을 수 없습니다. 다른 사진으로 시도해 주세요.'}return}if(e.target.id==='direct-file'||e.target.id==='direct-img'){const fs=[...(e.target.files||[])],auto=e.target.id==='direct-img';e.target.value='';const st0=$('#direct-status');if(st0&&fs.length)st0.textContent='올린 파일을 준비하는 중입니다…';const over=inFiles.length+fs.length>10;attachFiles(inFiles,fs,'#direct-status',10).then(()=>{filesUI(inFiles,'#direct-files','direct-unfile');const st=$('#direct-status');if(st&&st.textContent==='올린 파일을 준비하는 중입니다…')st.textContent=`${inFiles.length}개를 올렸습니다. AI로 읽기를 누르면 한꺼번에 읽습니다.`;else if(st&&over)st.textContent='10개까지만 올릴 수 있어 앞의 10개만 담았습니다.';if(auto&&fs.length&&inFiles.length&&$('#direct-read'))directRead()});return} /* 사진을 고르면 버튼을 더 누르지 않아도 곧바로 AI가 읽는다 */if(e.target.id==='askall-file'||e.target.id==='askall-img'){const fs=[...(e.target.files||[])];e.target.value='';askAttach(fs);return}if(e.target.id==='f-cam'||e.target.id==='f-file'){const fs=[...(e.target.files||[])];e.target.value='';onPhotos(fs)}});
 $('#sheet').addEventListener('submit',e=>{e.preventDefault();if(e.target.id==='wine-form'){e.target.dataset.next=e.submitter&&e.submitter.id==='save-next'?'cam':'';saveWine(e.target)}else if(e.target.id==='ask-form')askAi(e.target);else if(e.target.id==='askall-form')askAllAi();else if(e.target.id==='drink-form')saveDrink(e.target);else if(e.target.id==='move-form')saveMove(e.target)});
 render();
 imgInit();

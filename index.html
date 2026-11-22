@@ -1031,7 +1031,9 @@ function renderIncoming(){
   const bottles=shown.reduce((a,x)=>a+Math.max(0,x.qty||0),0),total=shown.reduce((a,x)=>a+inAmt(x),0);
   const key=x=>inGroup==='store'?inStore(x):(inMonth(x)==='none'?'':inMonth(x));
   const groups={};for(const x of shown)(groups[key(x)]=groups[key(x)]||[]).push(x);
-  const ks=Object.keys(groups).sort((a,b)=>inGroup==='store'?groups[b].reduce((s,x)=>s+inAmt(x),0)-groups[a].reduce((s,x)=>s+inAmt(x),0)||a.localeCompare(b):b.localeCompare(a));
+  /* 최신 구매가 위: 구매처별이면 가장 최근에 산 구매처부터, 구매시기별이면 최근 달부터. 구매일이 없는 것은 맨 아래 */
+  const last=k=>groups[k].reduce((m,x)=>String(x.purchaseDate||'')>m?String(x.purchaseDate||''):m,'');
+  const ks=Object.keys(groups).sort((a,b)=>inGroup==='store'?last(b).localeCompare(last(a))||a.localeCompare(b):b.localeCompare(a));
   const gname=k=>inGroup==='store'?k:k?k.slice(0,4)+'년 '+(+k.slice(5))+'월 구매':'구매일 미입력';
   el.innerHTML=`<div class="in-tools"><div class="in-head"><div><b>${bottles}병</b> · ${shown.length}종${total?' · '+won(total):''}</div>
       <div class="seg" role="group" aria-label="묶어 보기"><button type="button" data-ingroup="store" aria-pressed="${inGroup==='store'}">구매처별</button><button type="button" data-ingroup="month" aria-pressed="${inGroup==='month'}">구매시기별</button></div></div>
@@ -1041,7 +1043,7 @@ function renderIncoming(){
     ${shown.length?'':'<div class="blank">조건에 맞는 입고예정 와인이 없습니다.</div>'}
     ${ks.map(k=>{const g=[...groups[k]].sort((a,b)=>String(b.purchaseDate||'').localeCompare(String(a.purchaseDate||''))||(b.createdAt||0)-(a.createdAt||0));const gt=g.reduce((s,x)=>s+inAmt(x),0);
       return`<section class="panel in-group"><div class="in-gh"><h2>${esc(gname(k))}</h2><span>${g.reduce((s,x)=>s+Math.max(0,x.qty||0),0)}병 · ${g.length}종${gt?' · '+won(gt):''}</span></div>
-        <div class="rlist">${g.map(x=>`<button type="button" data-incoming="${esc(x.id)}"><span class="in-main"><span class="rn">${esc(inName(x))}</span><span class="in-sub">${esc([inGroup==='store'?(x.purchaseDate?x.purchaseDate.slice(2).replace(/-/g,'.')+' 구매':''):x.store,x.eta?x.eta.slice(5).replace('-','/')+' 도착 예정':'',x.price?'병당 '+priceText(x):''].filter(Boolean).join(' · '))}</span></span><span class="in-qty">${Math.max(0,x.qty||0)}<small>병</small></span></button>`).join('')}</div></section>`}).join('')}`;
+        <div class="rlist">${g.map(x=>`<button type="button" data-incoming="${esc(x.id)}"><span class="in-main"><span class="rn">${esc(inName(x))}</span><span class="in-sub">${esc([x.purchaseDate?x.purchaseDate.slice(2).replace(/-/g,'.')+(inGroup==='store'?' 구매':''):'',inGroup==='store'?'':x.store,x.eta?x.eta.slice(5).replace('-','/')+' 도착 예정':'',x.price?'병당 '+priceText(x):''].filter(Boolean).join(' · '))}</span></span><span class="in-qty">${Math.max(0,x.qty||0)}<small>병</small></span></button>`).join('')}</div></section>`}).join('')}`;
 }
 function openIncoming(id){
   const x=incoming.find(y=>y.id===id);if(!x)return closeSheet();

@@ -804,7 +804,7 @@ function bottleCard(w){
 function drinkCard(d){
   return`<button type="button" class="bottle" data-drink="${esc(d.id)}">
     <span class="ph" style="--c:${styleVar(d.style)}">${imgTag('d:'+d.id)||imgTag(d.wineId)||`<span class="pv">${d.vintage?esc(d.vintage):'NV'}</span>`}${d.score?`<span class="badge">${esc(d.score)}점</span>`:''}</span>
-    <span class="b-txt"><span class="b-name">${(thumbs['d:'+d.id]||thumbs[d.wineId])&&d.vintage?esc(d.vintage)+' ':''}${esc(d.title||'')}</span><span class="b-sub">${esc([String(d.date||'').slice(2).replace(/-/g,'.'),d.occasion].filter(Boolean).join(' · '))}</span></span>
+    <span class="b-txt"><span class="b-name">${(thumbs['d:'+d.id]||thumbs[d.wineId])&&d.vintage?esc(d.vintage)+' ':''}${esc(d.title||'')}</span><span class="b-sub">${esc([String(d.date||'').slice(2).replace(/-/g,'.'),d.place,d.occasion].filter(Boolean).join(' · '))}</span></span>
   </button>`;
 }
 function renderHome(){
@@ -1183,10 +1183,10 @@ function commitDraft(){
 function renderHistory(){
   const el=$('#hist');
   if(!loaded){el.innerHTML='<div class="blank">불러오는 중입니다…</div>';return}
-  if(!drinks.length){el.innerHTML='<div class="blank"><strong>마신 기록이 없습니다</strong>셀러에서 와인을 고르고 마시기를 누르면 날짜, 자리, 시음기가 여기에 쌓입니다.</div>';return}
+  if(!drinks.length){el.innerHTML='<div class="blank"><strong>마신 기록이 없습니다</strong>셀러에서 와인을 고르고 마시기를 누르면 날짜, 장소, 자리, 시음기가 여기에 쌓입니다.</div>';return}
   const rows=[...drinks].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))||(b.createdAt||0)-(a.createdAt||0));
   el.innerHTML=rows.map(d=>`<button type="button" class="log${thumbs['d:'+d.id]?' has-ph':''}" data-drink="${esc(d.id)}">${thumbs['d:'+d.id]?`<img class="log-ph" src="${thumbUrl('d:'+d.id)}" alt="" decoding="async">`:''}
-    <span class="log-top"><span>${esc(d.date||'')}${d.occasion?' · '+esc(d.occasion):''}</span>${d.score?`<span class="score">${esc(d.score)}점</span>`:''}</span>
+    <span class="log-top"><span>${esc([d.date,d.place,d.occasion].filter(Boolean).join(' · '))}</span>${d.score?`<span class="score">${esc(d.score)}점</span>`:''}</span>
     <span class="w-name">${d.vintage?esc(d.vintage)+' ':''}${esc(d.title||'')}</span>
     ${d.note?`<span class="log-note">${esc(d.note)}</span>`:''}
   </button>`).join('');
@@ -1918,6 +1918,8 @@ function openDrink(wineId,drinkId){
         <p class="hint" id="d-photo-note">그날의 자리나 음식, 병 사진을 한 장 남길 수 있습니다.</p></div>
       ${fld('d-date','마신 날',d?d.date:today(),'type="date"')}
       ${fld('d-score','평점 (100점 만점)',d?d.score:'','inputmode="numeric"')}
+      ${fld('d-place','장소',d?d.place:'','placeholder="예: 집, 레스토랑 이름" list="d-places" autocomplete="off"',true)}
+      <datalist id="d-places">${[...new Set(['집',...[...drinks].sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)).map(x=>x.place).filter(Boolean)])].slice(0,20).map(p=>`<option value="${esc(p)}">`).join('')}</datalist>
       ${fld('d-occasion','자리',d?d.occasion:'','placeholder="예: 결혼기념일 저녁"',true)}
       ${fld('d-people','함께한 사람',d?d.people:'','',true)}
       ${fld('d-pairing','함께한 음식',d?d.pairing:(w&&w.pairing?'':''),'',true)}
@@ -1931,7 +1933,7 @@ async function saveDrink(form){
   const btn=$('#save-drink');btn.disabled=true;
   const old=id?drinks.find(x=>x.id===id)||{}:{};
   const w=wines.find(x=>x.id===wineId);
-  const d={...old,price:old.price??(w&&w.price!=null?w.price:null),wineId,date:v('d-date')||today(),score:num(v('d-score')),occasion:v('d-occasion'),people:v('d-people'),pairing:v('d-pairing'),note:$('#d-note').value.trim(),
+  const d={...old,price:old.price??(w&&w.price!=null?w.price:null),wineId,date:v('d-date')||today(),score:num(v('d-score')),place:v('d-place'),occasion:v('d-occasion'),people:v('d-people'),pairing:v('d-pairing'),note:$('#d-note').value.trim(),
     title:old.title||(w?title(w):''),vintage:old.vintage??(w?w.vintage:null),style:old.style||(w?w.style:''),createdAt:old.createdAt||Date.now()};
   const did=id||newId();
   try{
